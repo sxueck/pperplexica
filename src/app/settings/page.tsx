@@ -155,18 +155,6 @@ const Page = () => {
   const router = useRouter();
   const { hideSettings, isLoading: configLoading } = useAppConfig();
 
-  // Redirect to home if settings are hidden
-  useEffect(() => {
-    if (!configLoading && hideSettings) {
-      router.push('/');
-    }
-  }, [hideSettings, configLoading, router]);
-
-  // Early return if settings should be hidden
-  if (!configLoading && hideSettings) {
-    return null;
-  }
-
   useEffect(() => {
     const fetchConfig = async () => {
       const res = await fetch(`/api/config`, {
@@ -232,6 +220,13 @@ const Page = () => {
 
     fetchConfig();
   }, []);
+
+  // Redirect to home if settings are hidden
+  useEffect(() => {
+    if (!configLoading && hideSettings) {
+      router.push('/');
+    }
+  }, [hideSettings, configLoading, router]);
 
   const saveConfig = async (key: string, value: any) => {
     setSavingStates((prev) => ({ ...prev, [key]: true }));
@@ -395,6 +390,11 @@ const Page = () => {
       }, 500);
     }
   };
+
+  // Early return if settings should be hidden
+  if (!configLoading && hideSettings) {
+    return null;
+  }
 
   return (
     <div className="max-w-3xl mx-auto">

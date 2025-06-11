@@ -1,0 +1,97 @@
+{
+  "app": {
+    "title": "Perplexica - 与互联网对话",
+    "description": "Perplexica 是一个连接互联网的 AI 聊天机器人。"
+  },
+  "chat": {
+    "title": "与互联网对话",
+    "placeholder": "问我任何问题...",
+    "followup": "问个后续问题",
+    "send": "发送",
+    "thinking": "思考中...",
+    "empty": {
+      "title": "研究从这里开始",
+      "description": "问我任何问题，我会在网上搜索答案。"
+    }
+  },
+  "sidebar": {
+    "home": "首页",
+    "discover": "发现",
+    "library": "图书馆",
+    "newChat": "新对话",
+    "chats": "对话",
+    "settings": "设置"
+  },
+  "search": {
+    "searching": "搜索中...",
+    "sources": "来源",
+    "images": "图片",
+    "videos": "视频",
+    "speed": "速度",
+    "balanced": "平衡",
+    "quality": "质量"
+  },
+  "focus": {
+    "focus": "焦点",
+    "all": "全部",
+    "allDesc": "搜索整个互联网",
+    "academic": "学术",
+    "academicDesc": "在已发布的学术论文中搜索",
+    "writing": "写作",
+    "writingDesc": "无需搜索网络即可聊天",
+    "wolfram": "Wolfram Alpha",
+    "wolframDesc": "计算知识引擎",
+    "youtube": "Youtube",
+    "youtubeDesc": "搜索和观看视频",
+    "reddit": "Reddit",
+    "redditDesc": "搜索讨论和观点"
+  },
+  "optimization": {
+    "speed": "Speed",
+    "speedDesc": "优先考虑速度，获得最快的回答。",
+    "balanced": "Balanced",
+    "balancedDesc": "在速度和准确性之间找到合适的平衡",
+    "quality": "Quality（即将推出）",
+    "qualityDesc": "获得最彻底和准确的答案"
+  },
+  "weather": {
+    "title": "天气"
+  },
+  "news": {
+    "title": "新闻"
+  },
+  "settings": {
+    "title": "设置",
+    "language": "语言",
+    "appearance": "外观",
+    "theme": "主题",
+    "storage": "存储",
+    "chatHistoryStorage": "聊天历史存储",
+    "serverDatabase": "服务器数据库 (SQLite)",
+    "browserStorage": "浏览器本地存储",
+    "storageNote": "SQLite：聊天历史保存在服务器上。本地：聊天历史仅存储在此浏览器中。",
+    "automaticSearch": "自动搜索",
+    "automaticImageSearch": "自动图片搜索",
+    "automaticImageSearchDesc": "在聊天回复中自动搜索相关图片",
+    "automaticVideoSearch": "自动视频搜索",
+    "automaticVideoSearchDesc": "在聊天回复中自动搜索相关视频",
+    "systemInstructions": "系统指令",
+    "systemInstructionsPlaceholder": "为 LLM 提供的特殊指令",
+    "modelSettings": "模型设置",
+    "chatModelProvider": "聊天模型提供商",
+    "chatModel": "聊天模型",
+    "embeddingModelProvider": "嵌入模型提供商",
+    "embeddingModel": "嵌入模型",
+    "apiConfiguration": "API 配置"
+  },
+  "delete": {
+    "confirm": "删除对话？",
+    "cancel": "取消",
+    "delete": "删除"
+  },
+  "attach": {
+    "files": "附加文件"
+  },
+  "loading": "加载中...",
+  "error": "发生错误"
+} 

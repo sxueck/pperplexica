@@ -7,32 +7,9 @@ import {
   Transition,
 } from '@headlessui/react';
 import { Fragment } from 'react';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
-const OptimizationModes = [
-  {
-    key: 'speed',
-    title: 'Speed',
-    description: 'Prioritize speed and get the quickest possible answer.',
-    icon: <Zap size={20} className="text-[#FF9800]" />,
-  },
-  {
-    key: 'balanced',
-    title: 'Balanced',
-    description: 'Find the right balance between speed and accuracy',
-    icon: <Sliders size={20} className="text-[#4CAF50]" />,
-  },
-  {
-    key: 'quality',
-    title: 'Quality (Soon)',
-    description: 'Get the most thorough and accurate answer',
-    icon: (
-      <Star
-        size={16}
-        className="text-[#2196F3] dark:text-[#BBDEFB] fill-[#BBDEFB] dark:fill-[#2196F3]"
-      />
-    ),
-  },
-];
+
 
 const Optimization = ({
   optimizationMode,
@@ -41,6 +18,33 @@ const Optimization = ({
   optimizationMode: string;
   setOptimizationMode: (mode: string) => void;
 }) => {
+  const { t } = useLanguage();
+  
+  const getOptimizationModes = () => [
+    {
+      key: 'speed',
+      title: t('optimization.speed'),
+      description: t('optimization.speedDesc'),
+      icon: <Zap size={20} className="text-[#FF9800]" />,
+    },
+    {
+      key: 'balanced',
+      title: t('optimization.balanced'),
+      description: t('optimization.balancedDesc'),
+      icon: <Sliders size={20} className="text-[#4CAF50]" />,
+    },
+    {
+      key: 'quality',
+      title: t('optimization.quality'),
+      description: t('optimization.qualityDesc'),
+      icon: (
+        <Star
+          size={16}
+          className="text-[#2196F3] dark:text-[#BBDEFB] fill-[#BBDEFB] dark:fill-[#2196F3]"
+        />
+      ),
+    },
+  ];
   return (
     <Popover className="relative w-full max-w-[15rem] md:max-w-md lg:max-w-lg">
       <PopoverButton
@@ -49,12 +53,12 @@ const Optimization = ({
       >
         <div className="flex flex-row items-center space-x-1">
           {
-            OptimizationModes.find((mode) => mode.key === optimizationMode)
+            getOptimizationModes().find((mode) => mode.key === optimizationMode)
               ?.icon
           }
           <p className="text-xs font-medium">
             {
-              OptimizationModes.find((mode) => mode.key === optimizationMode)
+              getOptimizationModes().find((mode) => mode.key === optimizationMode)
                 ?.title
             }
           </p>
@@ -72,7 +76,7 @@ const Optimization = ({
       >
         <PopoverPanel className="absolute z-10 w-64 md:w-[250px] right-0">
           <div className="flex flex-col gap-2 bg-light-primary dark:bg-dark-primary border rounded-lg border-light-200 dark:border-dark-200 w-full p-4 max-h-[200px] md:max-h-none overflow-y-auto">
-            {OptimizationModes.map((mode, i) => (
+            {getOptimizationModes().map((mode, i) => (
               <PopoverButton
                 onClick={() => setOptimizationMode(mode.key)}
                 key={i}

@@ -1,0 +1,97 @@
+{
+  "app": {
+    "title": "Perplexica - Chat with the internet",
+    "description": "Perplexica is an AI powered chatbot that is connected to the internet."
+  },
+  "chat": {
+    "title": "Chat with the internet", 
+    "placeholder": "Ask anything...",
+    "followup": "Ask a follow-up",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "empty": {
+      "title": "Research begins here.",
+      "description": "Ask me anything and I'll search the web for answers."
+    }
+  },
+  "sidebar": {
+    "home": "Home",
+    "discover": "Discover", 
+    "library": "Library",
+    "newChat": "New Chat",
+    "chats": "Chats",
+    "settings": "Settings"
+  },
+  "search": {
+    "searching": "Searching...",
+    "sources": "Sources",
+    "images": "Images", 
+    "videos": "Videos",
+    "speed": "Speed",
+    "balanced": "Balanced",
+    "quality": "Quality"
+  },
+  "focus": {
+    "focus": "Focus",
+    "all": "All",
+    "allDesc": "Searches across all of the internet",
+    "academic": "Academic",
+    "academicDesc": "Search in published academic papers",
+    "writing": "Writing",
+    "writingDesc": "Chat without searching the web",
+    "wolfram": "Wolfram Alpha",
+    "wolframDesc": "Computational knowledge engine",
+    "youtube": "Youtube",
+    "youtubeDesc": "Search and watch videos",
+    "reddit": "Reddit",
+    "redditDesc": "Search for discussions and opinions"
+  },
+  "optimization": {
+    "speed": "Speed",
+    "speedDesc": "Prioritize speed and get the quickest possible answer.",
+    "balanced": "Balanced",
+    "balancedDesc": "Find the right balance between speed and accuracy",
+    "quality": "Quality (Soon)",
+    "qualityDesc": "Get the most thorough and accurate answer"
+  },
+  "weather": {
+    "title": "Weather"
+  },
+  "news": {
+    "title": "News"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "storage": "Storage",
+    "chatHistoryStorage": "Chat History Storage",
+    "serverDatabase": "Server Database (SQLite)",
+    "browserStorage": "Browser Local Storage",
+    "storageNote": "SQLite: Chat history saved on server. Local: Chat history only stored in this browser.",
+    "automaticSearch": "Automatic Search",
+    "automaticImageSearch": "Automatic Image Search",
+    "automaticImageSearchDesc": "Automatically search for relevant images in chat responses",
+    "automaticVideoSearch": "Automatic Video Search", 
+    "automaticVideoSearchDesc": "Automatically search for relevant videos in chat responses",
+    "systemInstructions": "System Instructions",
+    "systemInstructionsPlaceholder": "Any special instructions for the LLM",
+    "modelSettings": "Model Settings",
+    "chatModelProvider": "Chat Model Provider",
+    "chatModel": "Chat Model",
+    "embeddingModelProvider": "Embedding Model Provider",
+    "embeddingModel": "Embedding Model",
+    "apiConfiguration": "API Configuration"
+  },
+  "delete": {
+    "confirm": "Delete chat?", 
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
+  "attach": {
+    "files": "Attach files"
+  },
+  "loading": "Loading...",
+  "error": "Error occurred"
+} 
