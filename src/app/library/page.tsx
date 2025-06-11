@@ -21,16 +21,33 @@ const Page = () => {
     const fetchChats = async () => {
       setLoading(true);
 
-      const res = await fetch(`/api/chats`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      try {
+        // Check storage configuration
+        const configRes = await fetch('/api/config');
+        const config = await configRes.json();
+        
+        if (config.libraryStorage === 'local') {
+          // For local storage, get chats from localStorage
+          const { getLocalChats } = await import('@/lib/storage/localStorage');
+          const localChats = getLocalChats();
+          setChats(localChats);
+        } else {
+          // For sqlite storage, use existing API
+          const res = await fetch(`/api/chats`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
 
-      const data = await res.json();
+          const data = await res.json();
+          setChats(data.chats);
+        }
+      } catch (error) {
+        console.error('Error fetching chats:', error);
+        setChats([]);
+      }
 
-      setChats(data.chats);
       setLoading(false);
     };
 

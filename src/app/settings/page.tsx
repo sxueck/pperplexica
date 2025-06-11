@@ -8,6 +8,8 @@ import ThemeSwitcher from '@/components/theme/Switcher';
 import { ImagesIcon, VideoIcon } from 'lucide-react';
 import Link from 'next/link';
 import { PROVIDER_METADATA } from '@/lib/providers';
+import { useRouter } from 'next/navigation';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 interface SettingsType {
   chatModelProviders: {
@@ -26,6 +28,8 @@ interface SettingsType {
   customOpenaiApiKey: string;
   customOpenaiApiUrl: string;
   customOpenaiModelName: string;
+  hideSettings: boolean;
+  libraryStorage: string;
 }
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -148,6 +152,20 @@ const Page = () => {
   const [automaticVideoSearch, setAutomaticVideoSearch] = useState(false);
   const [systemInstructions, setSystemInstructions] = useState<string>('');
   const [savingStates, setSavingStates] = useState<Record<string, boolean>>({});
+  const router = useRouter();
+  const { hideSettings, isLoading: configLoading } = useAppConfig();
+
+  // Redirect to home if settings are hidden
+  useEffect(() => {
+    if (!configLoading && hideSettings) {
+      router.push('/');
+    }
+  }, [hideSettings, configLoading, router]);
+
+  // Early return if settings should be hidden
+  if (!configLoading && hideSettings) {
+    return null;
+  }
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -421,6 +439,28 @@ const Page = () => {
                   Theme
                 </p>
                 <ThemeSwitcher />
+              </div>
+            </SettingsSection>
+
+            <SettingsSection title="Storage">
+              <div className="flex flex-col space-y-1">
+                <p className="text-black/70 dark:text-white/70 text-sm">
+                  Chat History Storage
+                </p>
+                <Select
+                  value={config.libraryStorage}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    saveConfig('libraryStorage', value);
+                  }}
+                  options={[
+                    { value: 'sqlite', label: 'Server Database (SQLite)' },
+                    { value: 'local', label: 'Browser Local Storage' },
+                  ]}
+                />
+                <p className="text-xs text-black/60 dark:text-white/60 mt-1">
+                  SQLite: Chat history saved on server. Local: Chat history only stored in this browser.
+                </p>
               </div>
             </SettingsSection>
 

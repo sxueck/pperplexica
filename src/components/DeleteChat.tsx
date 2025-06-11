@@ -29,19 +29,29 @@ const DeleteChat = ({
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/chats/${chatId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      // Check storage configuration
+      const configRes = await fetch('/api/config');
+      const config = await configRes.json();
+      
+      if (config.libraryStorage === 'local') {
+        // For local storage, delete from localStorage
+        const { deleteLocalChat } = await import('@/lib/storage/localStorage');
+        deleteLocalChat(chatId);
+      } else {
+        // For sqlite storage, use existing API
+        const res = await fetch(`/api/chats/${chatId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      if (res.status != 200) {
-        throw new Error('Failed to delete chat');
+        if (res.status != 200) {
+          throw new Error('Failed to delete chat');
+        }
       }
 
       const newChats = chats.filter((chat) => chat.id !== chatId);
-
       setChats(newChats);
 
       if (redirect) {

@@ -9,9 +9,8 @@ import crypto from 'crypto';
 import { toast } from 'sonner';
 import { useSearchParams } from 'next/navigation';
 import { getSuggestions } from '@/lib/actions';
-import { Settings } from 'lucide-react';
-import Link from 'next/link';
 import NextError from 'next/error';
+import SettingsButton from './SettingsButton';
 
 export type Message = {
   messageId: string;
@@ -189,6 +188,50 @@ const loadMessages = async (
   setFiles: (files: File[]) => void,
   setFileIds: (fileIds: string[]) => void,
 ) => {
+  // Check if we're using local storage
+  try {
+    const configRes = await fetch('/api/config');
+    const config = await configRes.json();
+    
+    if (config.libraryStorage === 'local') {
+      // For local storage, load from localStorage
+      const { getLocalChatById, getLocalMessagesByChatId } = await import('@/lib/storage/localStorage');
+      
+      const chat = getLocalChatById(chatId);
+      if (!chat) {
+        setNotFound(true);
+        setIsMessagesLoaded(true);
+        return;
+      }
+
+      const localMessages = getLocalMessagesByChatId(chatId);
+      const messages = localMessages.map((msg) => ({
+        ...msg,
+        createdAt: new Date(msg.metadata.createdAt),
+        sources: msg.metadata.sources || [],
+      })) as Message[];
+
+      setMessages(messages);
+
+      const history = messages.map((msg) => [msg.role, msg.content]) as [string, string][];
+
+      if (messages.length > 0) {
+        console.debug(new Date(), 'app:messages_loaded');
+        document.title = messages[0].content;
+      }
+
+      setFiles(chat.files || []);
+      setFileIds((chat.files || []).map((file: File) => file.fileId));
+      setChatHistory(history);
+      setFocusMode(chat.focusMode);
+      setIsMessagesLoaded(true);
+      return;
+    }
+  } catch (error) {
+    console.error('Error checking storage config:', error);
+  }
+
+  // For sqlite storage, use existing API logic
   const res = await fetch(`/api/chats/${chatId}`, {
     method: 'GET',
     headers: {
@@ -354,6 +397,29 @@ const ChatWindow = ({ id }: { id?: string }) => {
       },
     ]);
 
+    // Save user message to local storage if using local storage
+    try {
+      const configRes = await fetch('/api/config');
+      const config = await configRes.json();
+      
+      if (config.libraryStorage === 'local') {
+        const { saveLocalMessage } = await import('@/lib/storage/localStorage');
+        
+        saveLocalMessage({
+          id: messageId,
+          content: message,
+          chatId: chatId!,
+          messageId: messageId,
+          role: 'user',
+          metadata: {
+            createdAt: new Date().toISOString(),
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Error saving user message to local storage:', error);
+    }
+
     const messageHandler = async (data: any) => {
       if (data.type === 'error') {
         toast.error(data.data);
@@ -418,6 +484,46 @@ const ChatWindow = ({ id }: { id?: string }) => {
         ]);
 
         setLoading(false);
+
+        // Save to local storage if using local storage
+        try {
+          const configRes = await fetch('/api/config');
+          const config = await configRes.json();
+          
+          if (config.libraryStorage === 'local') {
+            const { saveLocalChat, saveLocalMessage, getLocalChatById } = await import('@/lib/storage/localStorage');
+            
+            // Save chat if it doesn't exist
+            const existingChat = getLocalChatById(chatId!);
+            if (!existingChat) {
+              saveLocalChat({
+                id: chatId!,
+                title: message,
+                createdAt: new Date().toISOString(),
+                focusMode: focusMode,
+                files: files,
+              });
+            }
+
+            // Save assistant message
+            const lastMsg = messagesRef.current[messagesRef.current.length - 1];
+            if (lastMsg) {
+              saveLocalMessage({
+                id: lastMsg.messageId,
+                content: lastMsg.content,
+                chatId: chatId!,
+                messageId: lastMsg.messageId,
+                role: 'assistant',
+                metadata: {
+                  createdAt: new Date().toISOString(),
+                  sources: lastMsg.sources || [],
+                },
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error saving to local storage:', error);
+        }
 
         const lastMsg = messagesRef.current[messagesRef.current.length - 1];
 
@@ -511,12 +617,25 @@ const ChatWindow = ({ id }: { id?: string }) => {
     }
   };
 
-  const rewrite = (messageId: string) => {
+  const rewrite = async (messageId: string) => {
     const index = messages.findIndex((msg) => msg.messageId === messageId);
 
     if (index === -1) return;
 
     const message = messages[index - 1];
+
+    // For local storage, delete messages after the target message
+    try {
+      const configRes = await fetch('/api/config');
+      const config = await configRes.json();
+      
+      if (config.libraryStorage === 'local') {
+        const { deleteLocalMessagesAfter } = await import('@/lib/storage/localStorage');
+        deleteLocalMessagesAfter(chatId!, message.messageId);
+      }
+    } catch (error) {
+      console.error('Error deleting messages from local storage:', error);
+    }
 
     setMessages((prev) => {
       return [...prev.slice(0, messages.length > 2 ? index - 1 : 0)];
@@ -539,9 +658,7 @@ const ChatWindow = ({ id }: { id?: string }) => {
     return (
       <div className="relative">
         <div className="absolute w-full flex flex-row items-center justify-end mr-5 mt-5">
-          <Link href="/settings">
-            <Settings className="cursor-pointer lg:hidden" />
-          </Link>
+          <SettingsButton variant="mobile" />
         </div>
         <div className="flex flex-col items-center justify-center min-h-screen">
           <p className="dark:text-white/70 text-black/70 text-sm">

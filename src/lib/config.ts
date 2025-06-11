@@ -15,6 +15,8 @@ interface Config {
   GENERAL: {
     SIMILARITY_MEASURE: string;
     KEEP_ALIVE: string;
+    HIDE_SETTINGS: boolean;
+    LIBRARY_STORAGE: string;
   };
   MODELS: {
     OPENAI: {
@@ -69,6 +71,10 @@ export const getSimilarityMeasure = () =>
   loadConfig().GENERAL.SIMILARITY_MEASURE;
 
 export const getKeepAlive = () => loadConfig().GENERAL.KEEP_ALIVE;
+
+export const getHideSettings = () => loadConfig().GENERAL.HIDE_SETTINGS;
+
+export const getLibraryStorage = () => loadConfig().GENERAL.LIBRARY_STORAGE;
 
 export const getOpenaiApiKey = () => loadConfig().MODELS.OPENAI.API_KEY;
 

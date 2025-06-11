@@ -1,11 +1,12 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { BookOpenText, Home, Search, SquarePen, Settings } from 'lucide-react';
+import { BookOpenText, Home, Search, SquarePen } from 'lucide-react';
 import Link from 'next/link';
 import { useSelectedLayoutSegments } from 'next/navigation';
 import React, { useState, type ReactNode } from 'react';
 import Layout from './Layout';
+import SettingsButton from './SettingsButton';
 
 const VerticalIconContainer = ({ children }: { children: ReactNode }) => {
   return (
@@ -64,9 +65,7 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
             ))}
           </VerticalIconContainer>
 
-          <Link href="/settings">
-            <Settings className="cursor-pointer" />
-          </Link>
+          <SettingsButton variant="sidebar" />
         </div>
       </div>
 

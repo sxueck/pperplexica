@@ -1,6 +1,7 @@
 import db from '@/lib/db';
 import { chats, messages } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { getLibraryStorage } from '@/lib/config';
 
 export const GET = async (
   req: Request,
@@ -8,7 +9,14 @@ export const GET = async (
 ) => {
   try {
     const { id } = await params;
+    const libraryStorage = getLibraryStorage();
 
+    // For local storage, return 404 as chats are stored in browser
+    if (libraryStorage === 'local') {
+      return Response.json({ message: 'Chat not found' }, { status: 404 });
+    }
+
+    // For sqlite storage, use existing database logic
     const chatExists = await db.query.chats.findFirst({
       where: eq(chats.id, id),
     });
@@ -43,7 +51,17 @@ export const DELETE = async (
 ) => {
   try {
     const { id } = await params;
+    const libraryStorage = getLibraryStorage();
 
+    // For local storage, return success as deletion happens in browser
+    if (libraryStorage === 'local') {
+      return Response.json(
+        { message: 'Chat deleted successfully' },
+        { status: 200 },
+      );
+    }
+
+    // For sqlite storage, use existing database logic
     const chatExists = await db.query.chats.findFirst({
       where: eq(chats.id, id),
     });

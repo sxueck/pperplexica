@@ -19,6 +19,7 @@ import {
   getCustomOpenaiApiKey,
   getCustomOpenaiApiUrl,
   getCustomOpenaiModelName,
+  getLibraryStorage,
 } from '@/lib/config';
 import { searchHandlers } from '@/lib/search';
 
@@ -61,6 +62,7 @@ const handleEmitterEvents = async (
 ) => {
   let recievedMessage = '';
   let sources: any[] = [];
+  const libraryStorage = getLibraryStorage();
 
   stream.on('data', (data) => {
     const parsedData = JSON.parse(data);
@@ -101,18 +103,21 @@ const handleEmitterEvents = async (
     );
     writer.close();
 
-    db.insert(messagesSchema)
-      .values({
-        content: recievedMessage,
-        chatId: chatId,
-        messageId: aiMessageId,
-        role: 'assistant',
-        metadata: JSON.stringify({
-          createdAt: new Date(),
-          ...(sources && sources.length > 0 && { sources }),
-        }),
-      })
-      .execute();
+    // Only save to database if using sqlite storage
+    if (libraryStorage === 'sqlite') {
+      db.insert(messagesSchema)
+        .values({
+          content: recievedMessage,
+          chatId: chatId,
+          messageId: aiMessageId,
+          role: 'assistant',
+          metadata: JSON.stringify({
+            createdAt: new Date(),
+            ...(sources && sources.length > 0 && { sources }),
+          }),
+        })
+        .execute();
+    }
   });
   stream.on('error', (data) => {
     const parsedData = JSON.parse(data);
@@ -134,6 +139,13 @@ const handleHistorySave = async (
   focusMode: string,
   files: string[],
 ) => {
+  const libraryStorage = getLibraryStorage();
+  
+  // Only save to database if using sqlite storage
+  if (libraryStorage !== 'sqlite') {
+    return;
+  }
+
   const chat = await db.query.chats.findFirst({
     where: eq(chats.id, message.chatId),
   });

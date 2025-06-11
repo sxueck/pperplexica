@@ -9,6 +9,8 @@ import {
   getOpenaiApiKey,
   getDeepseekApiKey,
   getLMStudioApiEndpoint,
+  getHideSettings,
+  getLibraryStorage,
   updateConfig,
 } from '@/lib/config';
 import {
@@ -60,6 +62,8 @@ export const GET = async (req: Request) => {
     config['customOpenaiApiUrl'] = getCustomOpenaiApiUrl();
     config['customOpenaiApiKey'] = getCustomOpenaiApiKey();
     config['customOpenaiModelName'] = getCustomOpenaiModelName();
+    config['hideSettings'] = getHideSettings();
+    config['libraryStorage'] = getLibraryStorage();
 
     return Response.json({ ...config }, { status: 200 });
   } catch (err) {
