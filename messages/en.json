@@ -60,6 +60,16 @@
   "news": {
     "title": "News"
   },
+  "statistics": {
+    "title": "Statistics",
+    "llmUsage": "LLM Usage Statistics",
+    "localCache": "Local Cache",
+    "questionsAsked": "Asked",
+    "questions": "questions",
+    "chats": "Chats",
+    "total": "Total",
+    "loadError": "Unable to load statistics"
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",

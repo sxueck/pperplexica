@@ -60,6 +60,16 @@
   "news": {
     "title": "新闻"
   },
+  "statistics": {
+    "title": "统计",
+    "llmUsage": "LLM 使用统计",
+    "localCache": "本地缓存",
+    "questionsAsked": "已询问",
+    "questions": "个问题",
+    "chats": "对话",
+    "total": "总计",
+    "loadError": "无法加载统计信息"
+  },
   "settings": {
     "title": "设置",
     "language": "语言",

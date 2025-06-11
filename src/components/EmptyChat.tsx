@@ -1,7 +1,7 @@
 import EmptyChatMessageInput from './EmptyChatMessageInput';
 import { File } from './ChatWindow';
 import WeatherWidget from './WeatherWidget';
-import NewsArticleWidget from './NewsArticleWidget';
+import LLMStatisticsWidget from './LLMStatisticsWidget';
 import SettingsButton from './SettingsButton';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 
@@ -54,7 +54,7 @@ const EmptyChat = ({
             <WeatherWidget />
           </div>
           <div className="flex-1 max-w-xs">
-            <NewsArticleWidget />
+            <LLMStatisticsWidget />
           </div>
         </div>
       </div>

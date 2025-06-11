@@ -2,18 +2,18 @@ FROM node:20.18.0-slim AS builder
 
 WORKDIR /home/perplexica
 
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --network-timeout 600000
+COPY package.json ./
+RUN npm install --only=production
 
 COPY tsconfig.json next.config.mjs next-env.d.ts postcss.config.js drizzle.config.ts tailwind.config.ts ./
 COPY src ./src
 COPY public ./public
 
 RUN mkdir -p /home/perplexica/data
-RUN yarn build
+RUN npm run build
 
-RUN yarn add --dev @vercel/ncc
-RUN yarn ncc build ./src/lib/db/migrate.ts -o migrator
+RUN npm install --save-dev @vercel/ncc
+RUN npx ncc build ./src/lib/db/migrate.ts -o migrator
 
 FROM node:20.18.0-slim
 
