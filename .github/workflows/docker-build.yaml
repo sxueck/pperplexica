@@ -7,9 +7,16 @@ on:
   release:
     types: [published]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   build-amd64:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -19,11 +26,12 @@ jobs:
         with:
           install: true
 
-      - name: Log in to DockerHub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version from release tag
         if: github.event_name == 'release'
@@ -34,30 +42,33 @@ jobs:
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: |
           DOCKERFILE=app.dockerfile
-          IMAGE_NAME=perplexica
+          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           docker buildx build --platform linux/amd64 \
-            --cache-from=type=registry,ref=itzcrazykns1337/${IMAGE_NAME}:amd64 \
+            --cache-from=type=registry,ref=${IMAGE_REPO}:amd64 \
             --cache-to=type=inline \
             --provenance false \
             -f $DOCKERFILE \
-            -t itzcrazykns1337/${IMAGE_NAME}:amd64 \
+            -t ${IMAGE_REPO}:amd64 \
             --push .
 
       - name: Build and push AMD64 release Docker image
         if: github.event_name == 'release'
         run: |
           DOCKERFILE=app.dockerfile
-          IMAGE_NAME=perplexica
+          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           docker buildx build --platform linux/amd64 \
-            --cache-from=type=registry,ref=itzcrazykns1337/${IMAGE_NAME}:${{ env.RELEASE_VERSION }}-amd64 \
+            --cache-from=type=registry,ref=${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-amd64 \
             --cache-to=type=inline \
             --provenance false \
             -f $DOCKERFILE \
-            -t itzcrazykns1337/${IMAGE_NAME}:${{ env.RELEASE_VERSION }}-amd64 \
+            -t ${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-amd64 \
             --push .
 
   build-arm64:
     runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -67,11 +78,12 @@ jobs:
         with:
           install: true
 
-      - name: Log in to DockerHub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version from release tag
         if: github.event_name == 'release'
@@ -82,37 +94,41 @@ jobs:
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: |
           DOCKERFILE=app.dockerfile
-          IMAGE_NAME=perplexica
+          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           docker buildx build --platform linux/arm64 \
-            --cache-from=type=registry,ref=itzcrazykns1337/${IMAGE_NAME}:arm64 \
+            --cache-from=type=registry,ref=${IMAGE_REPO}:arm64 \
             --cache-to=type=inline \
             --provenance false \
             -f $DOCKERFILE \
-            -t itzcrazykns1337/${IMAGE_NAME}:arm64 \
+            -t ${IMAGE_REPO}:arm64 \
             --push .
 
       - name: Build and push ARM64 release Docker image
         if: github.event_name == 'release'
         run: |
           DOCKERFILE=app.dockerfile
-          IMAGE_NAME=perplexica
+          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           docker buildx build --platform linux/arm64 \
-            --cache-from=type=registry,ref=itzcrazykns1337/${IMAGE_NAME}:${{ env.RELEASE_VERSION }}-arm64 \
+            --cache-from=type=registry,ref=${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-arm64 \
             --cache-to=type=inline \
             --provenance false \
             -f $DOCKERFILE \
-            -t itzcrazykns1337/${IMAGE_NAME}:${{ env.RELEASE_VERSION }}-arm64 \
+            -t ${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-arm64 \
             --push .
 
   manifest:
     needs: [build-amd64, build-arm64]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: Log in to DockerHub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version from release tag
         if: github.event_name == 'release'
@@ -122,17 +138,17 @@ jobs:
       - name: Create and push multi-arch manifest for main
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
         run: |
-          IMAGE_NAME=perplexica
-          docker manifest create itzcrazykns1337/${IMAGE_NAME}:main \
-            --amend itzcrazykns1337/${IMAGE_NAME}:amd64 \
-            --amend itzcrazykns1337/${IMAGE_NAME}:arm64
-          docker manifest push itzcrazykns1337/${IMAGE_NAME}:main
+          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          docker manifest create ${IMAGE_REPO}:main \
+            --amend ${IMAGE_REPO}:amd64 \
+            --amend ${IMAGE_REPO}:arm64
+          docker manifest push ${IMAGE_REPO}:main
 
       - name: Create and push multi-arch manifest for releases
         if: github.event_name == 'release'
         run: |
-          IMAGE_NAME=perplexica
-          docker manifest create itzcrazykns1337/${IMAGE_NAME}:${{ env.RELEASE_VERSION }} \
-            --amend itzcrazykns1337/${IMAGE_NAME}:${{ env.RELEASE_VERSION }}-amd64 \
-            --amend itzcrazykns1337/${IMAGE_NAME}:${{ env.RELEASE_VERSION }}-arm64
-          docker manifest push itzcrazykns1337/${IMAGE_NAME}:${{ env.RELEASE_VERSION }}
+          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          docker manifest create ${IMAGE_REPO}:${{ env.RELEASE_VERSION }} \
+            --amend ${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-amd64 \
+            --amend ${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-arm64
+          docker manifest push ${IMAGE_REPO}:${{ env.RELEASE_VERSION }}
