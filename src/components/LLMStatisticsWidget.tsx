@@ -1,4 +1,4 @@
-import { BarChart3, MessageSquare, Hash } from 'lucide-react';
+import { BarChart3, MessageSquare, Hash, Database, Activity } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
 
@@ -7,6 +7,37 @@ interface Statistics {
   totalChats: number;
   useLocalStorage?: boolean;
 }
+
+const AnimatedChart = ({ className }: { className?: string }) => {
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsAnimating(prev => !prev);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className={`relative ${className}`}>
+      <BarChart3 
+        className={`h-10 w-10 transition-all duration-500 ${
+          isAnimating 
+            ? 'text-blue-600 dark:text-blue-300 scale-110' 
+            : 'text-blue-500 dark:text-blue-400 scale-100'
+        }`}
+      />
+      <div 
+        className={`absolute inset-0 rounded-full transition-all duration-1000 ${
+          isAnimating 
+            ? 'bg-blue-500/20 scale-150' 
+            : 'bg-blue-500/0 scale-100'
+        }`}
+      />
+    </div>
+  );
+};
 
 const LLMStatisticsWidget = () => {
   const { t } = useLanguage();
@@ -80,9 +111,7 @@ const LLMStatisticsWidget = () => {
       ) : (
         <>
           <div className="flex flex-col items-center justify-center w-16 min-w-16 max-w-16 h-full">
-            <BarChart3 
-              className="h-10 w-10 text-blue-500 dark:text-blue-400"
-            />
+            <AnimatedChart />
             <span className="text-base font-semibold text-black dark:text-white">
               {t('statistics.title')}
             </span>
@@ -92,8 +121,8 @@ const LLMStatisticsWidget = () => {
               <span className="text-xs font-medium text-black dark:text-white">
                 {t('statistics.llmUsage')}
               </span>
-              <span className="flex items-center text-xs text-black/60 dark:text-white/60">
-                <Hash className="w-3 h-3 mr-1" />
+              <span className="flex items-center text-xs text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
+                <Database className="w-3 h-3 mr-1" />
                 {t('statistics.localCache')}
               </span>
             </div>
@@ -105,7 +134,10 @@ const LLMStatisticsWidget = () => {
                 <MessageSquare className="w-3 h-3 mr-1" />
                 {t('statistics.chats')}: {data.totalChats}
               </span>
-              <span>{t('statistics.total')}</span>
+              <span className="flex items-center">
+                <Activity className="w-3 h-3 mr-1" />
+                {t('statistics.total')}
+              </span>
             </div>
           </div>
         </>
