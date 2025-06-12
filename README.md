@@ -1,22 +1,5 @@
 # 🚀 Perplexica - An AI-powered search engine 🔎 <!-- omit in toc -->
 
-<div align="center" markdown="1">
-   <sup>Special thanks to:</sup>
-   <br>
-   <br>
-   <a href="https://www.warp.dev/perplexica">
-      <img alt="Warp sponsorship" width="400" src="https://github.com/user-attachments/assets/775dd593-9b5f-40f1-bf48-479faff4c27b">
-   </a>
-
-### [Warp, the AI Devtool that lives in your terminal](https://www.warp.dev/perplexica)
-
-[Available for MacOS, Linux, & Windows](https://www.warp.dev/perplexica)
-
-</div>
-
-<hr/>
-
-[![Discord](https://dcbadge.vercel.app/api/server/26aArMy8tT?style=flat&compact=true)](https://discord.gg/26aArMy8tT)
 
 ![preview](.assets/perplexica-screenshot.png?)
 
@@ -53,7 +36,7 @@ Want to know more about its architecture and how it works? You can read it [here
 
 ## Features
 
-- **Local LLMs**: You can make use local LLMs such as Llama3 and Mixtral using Ollama.
+- **Local LLMs**: You can make use of local LLMs such as Llama3 and Mixtral using Ollama, including advanced reranking capabilities with models like BGE-Reranker-v2-M3.
 - **Two Main Modes:**
   - **Copilot Mode:** (In development) Boosts search by generating different queries to find more relevant internet sources. Like normal search instead of just using the context by SearxNG, it visits the top matches and tries to find relevant sources to the user's query directly from the page.
   - **Normal Mode:** Processes your query and performs a web search.
@@ -135,6 +118,12 @@ If you're encountering an Ollama connection error, it is likely due to the backe
    - Inside `/etc/systemd/system/ollama.service`, you need to add `Environment="OLLAMA_HOST=0.0.0.0"`. Then restart Ollama by `systemctl restart ollama`. For more information see [Ollama docs](https://github.com/ollama/ollama/blob/main/docs/faq.md#setting-environment-variables-on-linux)
 
    - Ensure that the port (default is 11434) is not blocked by your firewall.
+
+4. **Reranking Model Setup (Optional):**
+
+   - For enhanced search accuracy in balanced mode, Perplexica automatically uses the `qllama/bge-reranker-v2-m3` model
+   - This model will be automatically downloaded when needed
+   - If you encounter issues with the rerank model, Perplexica will automatically fallback to embedding-based similarity
 
 ## Using as a Search Engine
 

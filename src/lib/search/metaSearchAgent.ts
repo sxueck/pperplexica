@@ -24,6 +24,7 @@ import computeSimilarity from '../utils/computeSimilarity';
 import formatChatHistoryAsString from '../utils/formatHistory';
 import eventEmitter from 'events';
 import { StreamEvent } from '@langchain/core/tracers/log_stream';
+import { getOllamaRerankModel } from '../providers/ollama';
 
 export interface MetaSearchAgentType {
   searchAndAnswer: (
@@ -300,6 +301,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
     embeddings: Embeddings,
     optimizationMode: 'speed' | 'balanced' | 'quality',
   ) {
+    
     if (docs.length === 0 && fileIds.length === 0) {
       return docs;
     }
@@ -336,7 +338,9 @@ class MetaSearchAgent implements MetaSearchAgentType {
       (doc) => doc.pageContent && doc.pageContent.length > 0,
     );
 
-    if (optimizationMode === 'speed' || this.config.rerank === false) {
+    // Check if rerank is disabled
+    if (this.config.rerank === false) {
+      // Fallback to basic similarity without reranking
       if (filesData.length > 0) {
         const [queryEmbedding] = await Promise.all([
           embeddings.embedQuery(query),
@@ -379,47 +383,90 @@ class MetaSearchAgent implements MetaSearchAgentType {
       } else {
         return docsWithContent.slice(0, 15);
       }
-    } else if (optimizationMode === 'balanced') {
-      const [docEmbeddings, queryEmbedding] = await Promise.all([
-        embeddings.embedDocuments(
-          docsWithContent.map((doc) => doc.pageContent),
-        ),
-        embeddings.embedQuery(query),
-      ]);
-
-      docsWithContent.push(
-        ...filesData.map((fileData) => {
-          return new Document({
-            pageContent: fileData.content,
-            metadata: {
-              title: fileData.fileName,
-              url: `File`,
-            },
-          });
-        }),
-      );
-
-      docEmbeddings.push(...filesData.map((fileData) => fileData.embeddings));
-
-      const similarity = docEmbeddings.map((docEmbedding, i) => {
-        const sim = computeSimilarity(queryEmbedding, docEmbedding);
-
-        return {
-          index: i,
-          similarity: sim,
-        };
-      });
-
-      const sortedDocs = similarity
-        .filter((sim) => sim.similarity > (this.config.rerankThreshold ?? 0.3))
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, 15)
-        .map((sim) => docsWithContent[sim.index]);
-
-      return sortedDocs;
     }
 
-    return [];
+    // Use Ollama rerank model for all optimization modes when rerank is enabled
+    try {
+      const rerankModel = await getOllamaRerankModel();
+      
+      if (rerankModel) {
+        // Merge all documents
+        const allDocs = [
+          ...docsWithContent,
+          ...filesData.map((fileData) => {
+            return new Document({
+              pageContent: fileData.content,
+              metadata: {
+                title: fileData.fileName,
+                url: `File`,
+              },
+            });
+          }),
+        ];
+
+        if (allDocs.length === 0) {
+          console.log(`No documents to rerank after merging`);
+          return [];
+        }
+
+        // Use rerank model for reranking
+        const documentTexts = allDocs.map((doc) => doc.pageContent);
+        const rerankResults = await rerankModel.model.rerank(query, documentTexts);
+
+        // Sort documents based on rerank results
+        const sortedDocs = rerankResults
+          .filter((result: { index: number; score: number }) => result.score > (this.config.rerankThreshold ?? 0.3))
+          .sort((a: { index: number; score: number }, b: { index: number; score: number }) => b.score - a.score)
+          .slice(0, 15)
+          .map((result: { index: number; score: number }) => allDocs[result.index])
+          .filter((doc: Document | undefined) => doc); // Filter out undefined
+
+        return sortedDocs;
+      } else {
+        console.warn('Ollama rerank model not available, falling back to embedding similarity');
+      }
+    } catch (error) {
+      console.error('Error using Ollama rerank model, falling back to embedding similarity:', error);
+    }
+
+    // If rerank model is not available, fallback to original embedding similarity method
+    const [docEmbeddings, queryEmbedding] = await Promise.all([
+      embeddings.embedDocuments(
+        docsWithContent.map((doc) => doc.pageContent),
+      ),
+      embeddings.embedQuery(query),
+    ]);
+
+    docsWithContent.push(
+      ...filesData.map((fileData) => {
+        return new Document({
+          pageContent: fileData.content,
+          metadata: {
+            title: fileData.fileName,
+            url: `File`,
+          },
+        });
+      }),
+    );
+
+    docEmbeddings.push(...filesData.map((fileData) => fileData.embeddings));
+
+    const similarity = docEmbeddings.map((docEmbedding, i) => {
+      const sim = computeSimilarity(queryEmbedding, docEmbedding);
+
+      return {
+        index: i,
+        similarity: sim,
+      };
+    });
+
+    const sortedDocs = similarity
+      .filter((sim) => sim.similarity > (this.config.rerankThreshold ?? 0.3))
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, 15)
+      .map((sim) => docsWithContent[sim.index]);
+
+    return sortedDocs;
   }
 
   private processDocs(docs: Document[]) {
