@@ -17,7 +17,9 @@ import LineListOutputParser from '../outputParsers/listLineOutputParser';
 import LineOutputParser from '../outputParsers/lineOutputParser';
 import { getDocumentsFromLinks } from '../utils/documents';
 import { Document } from 'langchain/document';
-import { searchSearxng } from '../searxng';
+import { searchSearxng } from './sources/searxng';
+import { searchTavily } from './sources/tavily';
+import { searchBochaAI } from './sources/bochaai';
 import path from 'node:path';
 import fs from 'node:fs';
 import computeSimilarity from '../utils/computeSimilarity';
@@ -25,6 +27,7 @@ import formatChatHistoryAsString from '../utils/formatHistory';
 import eventEmitter from 'events';
 import { StreamEvent } from '@langchain/core/tracers/log_stream';
 import { getOllamaRerankModel } from '../providers/ollama';
+import { getSearchModeConfig } from '../config';
 
 export interface MetaSearchAgentType {
   searchAndAnswer: (
@@ -61,7 +64,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
     this.config = config;
   }
 
-  private async createSearchRetrieverChain(llm: BaseChatModel) {
+  private async createSearchRetrieverChain(llm: BaseChatModel, optimizationMode: 'speed' | 'balanced' | 'quality') {
     (llm as unknown as ChatOpenAI).temperature = 0;
 
     return RunnableSequence.from([
@@ -206,31 +209,168 @@ class MetaSearchAgent implements MetaSearchAgentType {
         } else {
           question = question.replace(/<think>.*?<\/think>/g, '');
 
-          const res = await searchSearxng(question, {
-            language: 'en',
-            engines: this.config.activeEngines,
-          });
+          // Execute multi-source search based on optimization mode
+          const docs = await this.executeMultiSourceSearch(question, optimizationMode);
 
-          const documents = res.results.map(
-            (result) =>
-              new Document({
-                pageContent:
-                  result.content ||
-                  (this.config.activeEngines.includes('youtube')
-                    ? result.title
-                    : '') /* Todo: Implement transcript grabbing using Youtubei (source: https://www.npmjs.com/package/youtubei) */,
-                metadata: {
-                  title: result.title,
-                  url: result.url,
-                  ...(result.img_src && { img_src: result.img_src }),
-                },
-              }),
-          );
-
-          return { query: question, docs: documents };
+          return { query: question, docs };
         }
       }),
     ]);
+  }
+
+  /**
+   * Execute search using multiple sources based on optimization mode
+   * @param {string} query - Search query
+   * @param {string} optimizationMode - Optimization mode (speed, balanced, quality)
+   * @returns {Promise<Document[]>} Combined search results
+   */
+  private async executeMultiSourceSearch(
+    query: string,
+    optimizationMode: 'speed' | 'balanced' | 'quality'
+  ): Promise<Document[]> {
+    const allDocuments: Document[] = [];
+    
+    // Get configured search sources for this mode
+    const activeSources = getSearchModeConfig(optimizationMode);
+    console.log(`Using search sources for ${optimizationMode} mode:`, activeSources);
+
+    try {
+      // Prepare search promises based on configured sources
+      const searchPromises: Promise<any>[] = [];
+      
+      if (activeSources.includes('SEARXNG')) {
+        searchPromises.push(
+          searchSearxng(query, {
+            language: 'en',
+            engines: this.config.activeEngines,
+          }).catch((error) => {
+            console.warn(`SearxNG search failed in ${optimizationMode} mode:`, error);
+            return { results: [], suggestions: [] };
+          })
+        );
+      }
+
+      if (activeSources.includes('TAVILY')) {
+        const tavilyConfig = optimizationMode === 'quality' 
+          ? { maxResults: 15, searchDepth: 'advanced' as const, includeAnswer: true }
+          : { maxResults: 8, searchDepth: 'basic' as const };
+          
+        searchPromises.push(
+          searchTavily(query, tavilyConfig).catch((error: any) => {
+            console.warn(`Tavily search failed in ${optimizationMode} mode:`, error);
+            return { results: [], suggestions: [] };
+          })
+        );
+      }
+
+      if (activeSources.includes('BOCHAAI')) {
+        const bochaConfig = optimizationMode === 'quality'
+          ? { count: 15, summary: true, freshness: 'noLimit' as const }
+          : optimizationMode === 'balanced'
+          ? { count: 10, summary: true }
+          : { count: 8, summary: true };
+          
+        searchPromises.push(
+          searchBochaAI(query, bochaConfig).catch((error: any) => {
+            console.warn(`BochaAI search failed in ${optimizationMode} mode:`, error);
+            return { results: [], suggestions: [] };
+          })
+        );
+      }
+
+      // Execute all configured searches in parallel
+      const results = await Promise.all(searchPromises);
+      
+      // Process results based on configured sources
+      let sourceIndex = 0;
+      
+      if (activeSources.includes('SEARXNG')) {
+        const searxngResults = results[sourceIndex++];
+        const searxngDocs = searxngResults.results.map((result: any) =>
+          new Document({
+            pageContent:
+              result.content ||
+              (this.config.activeEngines.includes('youtube')
+                ? result.title
+                : ''),
+            metadata: {
+              title: result.title,
+              url: result.url,
+              source: 'searxng',
+              ...(result.img_src && { img_src: result.img_src }),
+            },
+          }),
+        );
+        allDocuments.push(...searxngDocs);
+      }
+
+      if (activeSources.includes('TAVILY')) {
+        const tavilyResults = results[sourceIndex++];
+        const tavilyDocs = tavilyResults.results.map((result: any) =>
+          new Document({
+            pageContent: result.content || '',
+            metadata: {
+              title: result.title,
+              url: result.url,
+              source: 'tavily',
+              ...(result.img_src && { img_src: result.img_src }),
+              ...(result.score && { score: result.score }),
+            },
+          }),
+        );
+        allDocuments.push(...tavilyDocs);
+      }
+
+      if (activeSources.includes('BOCHAAI')) {
+        const bochaaiResults = results[sourceIndex++];
+        const bochaaiDocs = bochaaiResults.results.map((result: any) =>
+          new Document({
+            pageContent: result.content || result.snippet || '',
+            metadata: {
+              title: result.title,
+              url: result.url,
+              source: 'bochaai',
+              ...(result.img_src && { img_src: result.img_src }),
+              ...(result.siteName && { siteName: result.siteName }),
+              ...(result.datePublished && { datePublished: result.datePublished }),
+            },
+          }),
+        );
+        allDocuments.push(...bochaaiDocs);
+      }
+
+    } catch (error) {
+      console.error('Error in multi-source search:', error);
+      // Fallback to SearxNG only if multi-source search fails
+      try {
+        const fallbackResults = await searchSearxng(query, {
+          language: 'en',
+          engines: this.config.activeEngines,
+        });
+
+        const fallbackDocs = fallbackResults.results.map((result) =>
+          new Document({
+            pageContent:
+              result.content ||
+              (this.config.activeEngines.includes('youtube')
+                ? result.title
+                : ''),
+            metadata: {
+              title: result.title,
+              url: result.url,
+              source: 'searxng',
+              ...(result.img_src && { img_src: result.img_src }),
+            },
+          }),
+        );
+
+        allDocuments.push(...fallbackDocs);
+      } catch (fallbackError) {
+        console.error('Fallback search also failed:', fallbackError);
+      }
+    }
+
+    return allDocuments;
   }
 
   private async createAnsweringChain(
@@ -256,7 +396,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
 
           if (this.config.searchWeb) {
             const searchRetrieverChain =
-              await this.createSearchRetrieverChain(llm);
+              await this.createSearchRetrieverChain(llm, optimizationMode);
 
             const searchRetrieverResult = await searchRetrieverChain.invoke({
               chat_history: processedHistory,
@@ -306,6 +446,15 @@ class MetaSearchAgent implements MetaSearchAgentType {
       return docs;
     }
 
+    // Determine document limits based on optimization mode
+    const docLimits = {
+      speed: { total: 10, file: 5 },
+      balanced: { total: 15, file: 8 },
+      quality: { total: 25, file: 12 },
+    };
+
+    const limits = docLimits[optimizationMode];
+
     const filesData = fileIds
       .map((file) => {
         const filePath = path.join(process.cwd(), 'uploads', file);
@@ -331,7 +480,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
       .flat();
 
     if (query.toLocaleLowerCase() === 'summarize') {
-      return docs.slice(0, 15);
+      return docs.slice(0, limits.total);
     }
 
     const docsWithContent = docs.filter(
@@ -370,18 +519,18 @@ class MetaSearchAgent implements MetaSearchAgentType {
             (sim) => sim.similarity > (this.config.rerankThreshold ?? 0.3),
           )
           .sort((a, b) => b.similarity - a.similarity)
-          .slice(0, 15)
+          .slice(0, limits.total)
           .map((sim) => fileDocs[sim.index]);
 
         sortedDocs =
-          docsWithContent.length > 0 ? sortedDocs.slice(0, 8) : sortedDocs;
+          docsWithContent.length > 0 ? sortedDocs.slice(0, limits.file) : sortedDocs;
 
         return [
           ...sortedDocs,
-          ...docsWithContent.slice(0, 15 - sortedDocs.length),
+          ...docsWithContent.slice(0, limits.total - sortedDocs.length),
         ];
       } else {
-        return docsWithContent.slice(0, 15);
+        return docsWithContent.slice(0, limits.total);
       }
     }
 
@@ -413,11 +562,11 @@ class MetaSearchAgent implements MetaSearchAgentType {
         const documentTexts = allDocs.map((doc) => doc.pageContent);
         const rerankResults = await rerankModel.model.rerank(query, documentTexts);
 
-        // Sort documents based on rerank results
+        // Sort documents based on rerank results with optimization mode limits
         const sortedDocs = rerankResults
           .filter((result: { index: number; score: number }) => result.score > (this.config.rerankThreshold ?? 0.3))
           .sort((a: { index: number; score: number }, b: { index: number; score: number }) => b.score - a.score)
-          .slice(0, 15)
+          .slice(0, limits.total)
           .map((result: { index: number; score: number }) => allDocs[result.index])
           .filter((doc: Document | undefined) => doc); // Filter out undefined
 
@@ -463,7 +612,7 @@ class MetaSearchAgent implements MetaSearchAgentType {
     const sortedDocs = similarity
       .filter((sim) => sim.similarity > (this.config.rerankThreshold ?? 0.3))
       .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, 15)
+      .slice(0, limits.total)
       .map((sim) => docsWithContent[sim.index]);
 
     return sortedDocs;

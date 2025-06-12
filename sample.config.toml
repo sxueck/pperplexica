@@ -1,36 +1,153 @@
+# Perplexica Configuration File
+# This file contains all the configuration options for Perplexica.
+# Copy this file to 'config.toml' in your root directory and modify the values as needed.
+
 [GENERAL]
-SIMILARITY_MEASURE = "cosine" # "cosine" or "dot"
-KEEP_ALIVE = "5m" # How long to keep Ollama models loaded into memory. (Instead of using -1 use "-1m")
+# Similarity measure for document comparison and ranking
+# Options: "cosine" (recommended for most cases) or "dot" (dot product)
+SIMILARITY_MEASURE = "cosine"
 
-HIDE_SETTINGS = false # Hide settings panel for public deployment
-LIBRARY_STORAGE = "sqlite" # Chat history storage method: "sqlite" for server storage, "local" for browser-only storage
+# How long to keep Ollama models loaded into memory
+# Format: number + time unit (s, m, h)
+# Examples: "5m" (5 minutes), "1h" (1 hour), "30s" (30 seconds)
+# Use "-1m" instead of -1 for unlimited (not recommended for production)
+KEEP_ALIVE = "5m"
 
+# Hide the settings panel in the UI (useful for public deployments)
+# Set to true to hide settings, false to show them
+HIDE_SETTINGS = false
+
+# Chat history storage method
+# "sqlite": Store chat history on server (persistent across sessions)
+# "local": Store chat history in browser only (lost when browser data is cleared)
+LIBRARY_STORAGE = "sqlite"
+
+# Search mode configuration - Define which search engines to use for each optimization mode
+# This allows you to customize which sources are used based on your needs and available API keys
+[SEARCH_MODES]
+# Speed mode: Fastest search, uses minimal resources
+# Recommended for quick queries where speed is more important than comprehensiveness
+SPEED = ["SEARXNG"]
+
+# Balanced mode: Good balance between speed and quality
+# Uses multiple sources for better coverage while maintaining reasonable response times
+BALANCED = ["SEARXNG", "TAVILY"]
+
+# Quality mode: Most comprehensive search, uses all available sources
+# Best for complex queries where thoroughness is more important than speed
+QUALITY = ["SEARXNG", "TAVILY", "BOCHAAI"]
+
+# Available search engines:
+# - SEARXNG: Self-hosted meta search engine (free, requires setup)
+# - TAVILY: AI-powered search API (paid service, good quality)
+# - BOCHAAI: BochaAI search service (paid service, real-time results)
+
+# Language Model API Configurations
+# Add your API keys here for the models you want to use
 
 [MODELS.OPENAI]
+# OpenAI API key for GPT models (gpt-3.5-turbo, gpt-4, etc.)
+# Get your key from: https://platform.openai.com/api-keys
 API_KEY = ""
 
 [MODELS.GROQ]
+# Groq API key for fast inference of open-source models
+# Get your key from: https://console.groq.com/keys
+# Supports models like Llama, Mixtral, Gemma
 API_KEY = ""
 
 [MODELS.ANTHROPIC]
+# Anthropic API key for Claude models (claude-3-sonnet, claude-3-haiku, etc.)
+# Get your key from: https://console.anthropic.com/
 API_KEY = ""
 
 [MODELS.GEMINI]
+# Google Gemini API key for Gemini models
+# Get your key from: https://aistudio.google.com/app/apikey
 API_KEY = ""
 
 [MODELS.CUSTOM_OPENAI]
-API_KEY = ""
-API_URL = ""
-MODEL_NAME = ""
+# Custom OpenAI-compatible API configuration
+# Useful for local deployments or alternative providers like Together AI, Fireworks AI
+API_KEY = ""           # API key for the custom endpoint
+API_URL = ""           # Base URL (e.g., "https://api.together.xyz/v1")
+MODEL_NAME = ""        # Model name (e.g., "meta-llama/Llama-2-70b-chat-hf")
 
 [MODELS.OLLAMA]
-API_URL = "" # Ollama API URL - http://host.docker.internal:11434
+# Ollama configuration for local model hosting
+# Download and run models locally for privacy and cost savings
+API_URL = ""           # Ollama API URL (e.g., "http://localhost:11434" or "http://host.docker.internal:11434" for Docker)
+RERANK_MODEL = ""      # Reranking model for improving search results (e.g., "bge-reranker-base")
 
 [MODELS.DEEPSEEK]
+# DeepSeek API key for DeepSeek models
+# Get your key from: https://platform.deepseek.com/api_keys
 API_KEY = ""
 
 [MODELS.LM_STUDIO]
-API_URL = "" # LM Studio API URL - http://host.docker.internal:1234
+# LM Studio configuration for local model serving
+# LM Studio provides a local OpenAI-compatible API
+API_URL = ""           # LM Studio API URL (e.g., "http://localhost:1234" or "http://host.docker.internal:1234" for Docker)
 
-[API_ENDPOINTS]
-SEARXNG = "" # SearxNG API URL - http://localhost:32768
+# Search Engine API Configurations
+# Configure the search engines you want to use
+
+[API_ENDPOINTS.SEARXNG]
+# SearxNG is a free, open-source metasearch engine
+# You need to host your own instance or use a public one
+# Setup guide: https://docs.searxng.org/
+SEARXNG = ""           # SearxNG API URL (e.g., "http://localhost:8080" or "https://your-searxng-instance.com")
+
+[API_ENDPOINTS.TAVILY]
+# Tavily provides AI-optimized search results
+# Sign up at: https://tavily.com/
+# Offers real-time search with AI-powered result optimization
+API_KEY = ""           # Your Tavily API key
+
+[API_ENDPOINTS.BOCHAAI]
+# BochaAI provides real-time search capabilities
+# Sign up at: https://bocha.ai/
+# Offers fast, real-time search results with good coverage
+API_KEY = ""           # Your BochaAI API key
+
+# Configuration Examples and Use Cases:
+
+# Example 1: Local-only setup (no external APIs required)
+# [SEARCH_MODES]
+# SPEED = ["SEARXNG"]
+# BALANCED = ["SEARXNG"]
+# QUALITY = ["SEARXNG"]
+# [MODELS.OLLAMA]
+# API_URL = "http://localhost:11434"
+# [API_ENDPOINTS.SEARXNG]
+# SEARXNG = "http://localhost:8080"
+
+# Example 2: Hybrid setup (local models + external search)
+# [MODELS.OLLAMA]
+# API_URL = "http://localhost:11434"
+# [API_ENDPOINTS.TAVILY]
+# API_KEY = "your-tavily-key"
+# [SEARCH_MODES]
+# SPEED = ["SEARXNG"]
+# BALANCED = ["SEARXNG", "TAVILY"]
+# QUALITY = ["SEARXNG", "TAVILY"]
+
+# Example 3: Full cloud setup
+# [MODELS.OPENAI]
+# API_KEY = "your-openai-key"
+# [API_ENDPOINTS.TAVILY]
+# API_KEY = "your-tavily-key"
+# [API_ENDPOINTS.BOCHAAI]
+# API_KEY = "your-bochaai-key"
+# [SEARCH_MODES]
+# SPEED = ["TAVILY"]
+# BALANCED = ["TAVILY", "BOCHAAI"]
+# QUALITY = ["SEARXNG", "TAVILY", "BOCHAAI"]
+
+# Example 4: Cost-optimized setup (minimize API costs)
+# [SEARCH_MODES]
+# SPEED = ["SEARXNG"]           # Free search only
+# BALANCED = ["SEARXNG"]        # Free search only
+# QUALITY = ["SEARXNG", "TAVILY"]  # Add one paid service for quality mode only
+# [MODELS.GROQ]                 # Use Groq for faster, cheaper inference
+# API_KEY = "your-groq-key"

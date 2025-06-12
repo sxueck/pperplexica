@@ -18,6 +18,11 @@ interface Config {
     HIDE_SETTINGS: boolean;
     LIBRARY_STORAGE: string;
   };
+  SEARCH_MODES: {
+    SPEED: string[];
+    BALANCED: string[];
+    QUALITY: string[];
+  };
   MODELS: {
     OPENAI: {
       API_KEY: string;
@@ -48,7 +53,15 @@ interface Config {
     };
   };
   API_ENDPOINTS: {
-    SEARXNG: string;
+    SEARXNG: {
+      SEARXNG: string;
+    };
+    TAVILY: {
+      API_KEY: string;
+    };
+    BOCHA: {
+      API_KEY: string;
+    };
   };
 }
 
@@ -86,7 +99,7 @@ export const getAnthropicApiKey = () => loadConfig().MODELS.ANTHROPIC.API_KEY;
 export const getGeminiApiKey = () => loadConfig().MODELS.GEMINI.API_KEY;
 
 export const getSearxngApiEndpoint = () =>
-  process.env.SEARXNG_API_URL || loadConfig().API_ENDPOINTS.SEARXNG;
+  process.env.SEARXNG_API_URL || loadConfig().API_ENDPOINTS.SEARXNG.SEARXNG;
 
 export const getOllamaApiEndpoint = () => loadConfig().MODELS.OLLAMA.API_URL;
 
@@ -105,6 +118,26 @@ export const getCustomOpenaiModelName = () =>
 
 export const getLMStudioApiEndpoint = () =>
   loadConfig().MODELS.LM_STUDIO.API_URL;
+
+export const getTavilyApiKey = () => 
+  process.env.TAVILY_API_KEY || loadConfig().API_ENDPOINTS.TAVILY.API_KEY;
+
+export const getBochaAIApiKey = () => 
+  process.env.BOCHAAI_API_KEY || loadConfig().API_ENDPOINTS.BOCHA.API_KEY;
+
+export const getSearchModeConfig = (mode: 'speed' | 'balanced' | 'quality') => {
+  const config = loadConfig();
+  switch (mode) {
+    case 'speed':
+      return config.SEARCH_MODES?.SPEED || ['SEARXNG'];
+    case 'balanced':
+      return config.SEARCH_MODES?.BALANCED || ['SEARXNG', 'TAVILY', 'BOCHAAI'];
+    case 'quality':
+      return config.SEARCH_MODES?.QUALITY || ['SEARXNG', 'TAVILY', 'BOCHAAI'];
+    default:
+      return ['SEARXNG'];
+  }
+};
 
 const mergeConfigs = (current: any, update: any): any => {
   if (update === null || update === undefined) {

@@ -27,7 +27,7 @@ interface embeddingModel {
 }
 
 interface ChatRequestBody {
-  optimizationMode: 'speed' | 'balanced';
+  optimizationMode: 'speed' | 'balanced' | 'quality';
   focusMode: string;
   chatModel?: chatModel;
   embeddingModel?: embeddingModel;
