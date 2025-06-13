@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "Perplexica - 与互联网对话",
-    "description": "Perplexica 是一个连接互联网的 AI 聊天机器人。"
+    "description": "Perplexica 是一个连接互联网的 AI 检索问答机器人"
   },
   "chat": {
     "title": "与互联网对话",
@@ -11,7 +11,7 @@
     "thinking": "思考中...",
     "empty": {
       "title": "探索由此启程",
-      "description": "问我任何问题，我会在网上搜索答案。"
+      "description": "问我任何问题，我会在网上搜索答案"
     }
   },
   "sidebar": {
@@ -20,7 +20,12 @@
     "library": "图书馆",
     "newChat": "新对话",
     "chats": "对话",
-    "settings": "设置"
+    "settings": "设置",
+    "recentChats": "最近对话",
+    "allChats": "全部对话",
+    "noChats": "暂无对话",
+    "showRecentChats": "显示最近对话",
+    "showAllChats": "显示全部对话"
   },
   "search": {
     "searching": "搜索中...",

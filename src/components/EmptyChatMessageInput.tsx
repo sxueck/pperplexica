@@ -1,7 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
-import CopilotToggle from './MessageInputActions/Copilot';
 import Focus from './MessageInputActions/Focus';
 import Optimization from './MessageInputActions/Optimization';
 import Attach from './MessageInputActions/Attach';

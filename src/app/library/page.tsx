@@ -22,12 +22,57 @@ interface ChatWithMessages {
   }>;
 }
 
+// Add interface for chat with summary
+interface ChatWithSummary {
+  chat: Chat;
+  messages: Array<{
+    id: string;
+    content: string;
+    role: 'user' | 'assistant';
+  }>;
+  summary?: string; // First assistant response summary
+}
+
 const Page = () => {
   const [allChats, setAllChats] = useState<Chat[]>([]);
-  const [filteredChats, setFilteredChats] = useState<ChatWithMessages[]>([]);
+  const [filteredChats, setFilteredChats] = useState<ChatWithSummary[]>([]);
+  const [chatsWithSummaries, setChatsWithSummaries] = useState<ChatWithSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchMode, setIsSearchMode] = useState(false);
+
+  // Function to get first assistant response and create summary
+  const getChatSummary = async (chatId: string, storageType: string): Promise<string> => {
+    try {
+      if (storageType === 'local') {
+        const { getLocalMessagesByChatId } = await import('@/lib/storage/localStorage');
+        const messages = getLocalMessagesByChatId(chatId);
+        const firstAssistantMsg = messages.find(msg => msg.role === 'assistant');
+        if (firstAssistantMsg && firstAssistantMsg.content) {
+          // Get first 180 characters of assistant response
+          return firstAssistantMsg.content.slice(0, 180);
+        }
+      } else {
+        // For SQLite storage, fetch chat messages
+        const res = await fetch(`/api/chats/${chatId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const messages = data.messages.map((msg: any) => ({
+            ...msg,
+            ...JSON.parse(msg.metadata || '{}'),
+          }));
+          const firstAssistantMsg = messages.find((msg: any) => msg.role === 'assistant');
+          if (firstAssistantMsg && firstAssistantMsg.content) {
+            // Get first 180 characters of assistant response
+            return firstAssistantMsg.content.slice(0, 180);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error getting chat summary:', error);
+    }
+    return '';
+  };
 
   useEffect(() => {
     const fetchChats = async () => {
@@ -43,6 +88,19 @@ const Page = () => {
           const { getLocalChats } = await import('@/lib/storage/localStorage');
           const localChats = getLocalChats();
           setAllChats(localChats);
+          
+          // Get summaries for each chat
+          const chatsWithSummaries = await Promise.all(
+            localChats.map(async (chat) => {
+              const summary = await getChatSummary(chat.id, 'local');
+              return {
+                chat,
+                messages: [],
+                summary
+              };
+            })
+          );
+          setChatsWithSummaries(chatsWithSummaries);
         } else {
           // For sqlite storage, use existing API
           const res = await fetch(`/api/chats`, {
@@ -54,10 +112,24 @@ const Page = () => {
 
           const data = await res.json();
           setAllChats(data.chats);
+          
+          // Get summaries for each chat
+          const chatsWithSummaries = await Promise.all(
+            data.chats.map(async (chat: Chat) => {
+              const summary = await getChatSummary(chat.id, 'sqlite');
+              return {
+                chat,
+                messages: [],
+                summary
+              };
+            })
+          );
+          setChatsWithSummaries(chatsWithSummaries);
         }
       } catch (error) {
         console.error('Error fetching chats:', error);
         setAllChats([]);
+        setChatsWithSummaries([]);
       }
 
       setLoading(false);
@@ -85,26 +157,39 @@ const Page = () => {
           // For local storage, use search function
           const { searchLocalChats } = await import('@/lib/storage/localStorage');
           const searchResults = searchLocalChats(searchQuery);
-          setFilteredChats(searchResults.map(result => ({
-            chat: result.chat,
-            messages: result.messages.map(msg => ({
-              id: msg.id,
-              content: msg.content,
-              role: msg.role
-            }))
-          })));
+          const filteredWithSummaries = await Promise.all(
+            searchResults.map(async (result) => {
+              const summary = await getChatSummary(result.chat.id, 'local');
+              return {
+                chat: result.chat,
+                messages: result.messages.map(msg => ({
+                  id: msg.id,
+                  content: msg.content,
+                  role: msg.role
+                })),
+                summary
+              };
+            })
+          );
+          setFilteredChats(filteredWithSummaries);
         } else {
           // For sqlite storage, implement search API call if needed
           // For now, just filter the existing chats by title
           const filtered = allChats
             .filter(chat => 
               chat.title.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            .map(chat => ({
-              chat,
-              messages: []
-            }));
-          setFilteredChats(filtered);
+            );
+          const filteredWithSummaries = await Promise.all(
+            filtered.map(async (chat) => {
+              const summary = await getChatSummary(chat.id, 'sqlite');
+              return {
+                chat,
+                messages: [],
+                summary
+              };
+            })
+          );
+          setFilteredChats(filteredWithSummaries);
         }
       } catch (error) {
         console.error('Error searching chats:', error);
@@ -122,7 +207,7 @@ const Page = () => {
     setIsSearchMode(false);
   };
 
-  const displayChats = isSearchMode ? filteredChats : allChats.map(chat => ({ chat, messages: [] }));
+  const displayChats = isSearchMode ? filteredChats : chatsWithSummaries;
 
   const getSearchHighlight = (text: string, query: string) => {
     if (!query.trim()) return text;
@@ -210,7 +295,7 @@ const Page = () => {
       {displayChats.length > 0 && (
         <div className="flex flex-col pb-20 lg:pb-2">
           {displayChats.map((item, i) => {
-            const { chat } = item;
+            const { chat, summary } = item;
             const matchingMessages = isSearchMode ? 
               item.messages.filter(msg => 
                 msg.content.toLowerCase().includes(searchQuery.toLowerCase())
@@ -232,6 +317,17 @@ const Page = () => {
                 >
                   {isSearchMode ? getSearchHighlight(chat.title, searchQuery) : chat.title}
                 </Link>
+                
+                {/* Add summary below title */}
+                {summary && (
+                  <div className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    {/* Summary content aligned with title width */}
+                    <p className="line-clamp-3">
+                      {isSearchMode ? getSearchHighlight(summary, searchQuery) : summary}
+                      {summary.length >= 200 && '...'}
+                    </p>
+                  </div>
+                )}
                 
                 {/* Show matching message content when searching */}
                 {isSearchMode && matchingMessages.length > 0 && (

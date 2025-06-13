@@ -4,6 +4,7 @@ import WeatherWidget from './WeatherWidget';
 import LLMStatisticsWidget from './LLMStatisticsWidget';
 import SettingsButton from './SettingsButton';
 import { useLanguage } from '@/lib/contexts/LanguageContext';
+import { Menu } from 'lucide-react';
 
 const EmptyChat = ({
   sendMessage,
@@ -27,9 +28,21 @@ const EmptyChat = ({
   setFiles: (files: File[]) => void;
 }) => {
   const { t } = useLanguage();
+  
+  const handleMobileMenuClick = () => {
+    window.dispatchEvent(new CustomEvent('toggleMobileMenu'));
+  };
+
   return (
     <div className="relative">
-      <div className="absolute w-full flex flex-row items-center justify-end mr-5 mt-5">
+      <div className="absolute w-full flex flex-row items-center justify-between px-5 pt-5 lg:justify-end">
+        <button
+          onClick={handleMobileMenuClick}
+          className="lg:hidden p-2 rounded-lg bg-light-secondary dark:bg-dark-secondary hover:bg-light-100 dark:hover:bg-dark-100 transition-colors"
+          aria-label="打开菜单"
+        >
+          <Menu size={20} className="text-black dark:text-white" />
+        </button>
         <SettingsButton variant="mobile" />
       </div>
       <div className="flex flex-col items-center justify-center min-h-screen max-w-screen-sm mx-auto p-2 space-y-4">
