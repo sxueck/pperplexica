@@ -5,12 +5,12 @@
   },
   "chat": {
     "title": "与互联网对话",
-    "placeholder": "问我任何问题...",
+    "placeholder": "尽管随心而问...",
     "followup": "问个后续问题",
     "send": "发送",
     "thinking": "思考中...",
     "empty": {
-      "title": "研究从这里开始",
+      "title": "探索由此启程",
       "description": "问我任何问题，我会在网上搜索答案。"
     }
   },
@@ -48,7 +48,7 @@
   },
   "optimization": {
     "speed": "Speed",
-    "speedDesc": "优先考虑速度，获得最快的回答。",
+    "speedDesc": "优先考虑速度，获得最快的回答",
     "balanced": "Balanced",
     "balancedDesc": "在速度和准确性之间找到合适的平衡",
     "quality": "Quality",
@@ -62,11 +62,11 @@
   },
   "statistics": {
     "title": "统计",
-    "llmUsage": "LLM 使用统计",
+    "llmUsage": "搜索使用统计",
     "localCache": "本地缓存",
     "questionsAsked": "已询问",
     "questions": "个问题",
-    "chats": "对话",
+    "chats": "提问",
     "total": "总计",
     "loadError": "无法加载统计信息"
   },

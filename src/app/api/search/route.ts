@@ -11,6 +11,7 @@ import {
   getCustomOpenaiApiKey,
   getCustomOpenaiApiUrl,
   getCustomOpenaiModelName,
+  getLibraryStorage,
 } from '@/lib/config';
 import { searchHandlers } from '@/lib/search';
 
@@ -51,6 +52,29 @@ export const POST = async (req: Request) => {
     body.history = body.history || [];
     body.optimizationMode = body.optimizationMode || 'balanced';
     body.stream = body.stream || false;
+
+    // Check for duplicate search in local storage before processing
+    try {
+      const libraryStorage = getLibraryStorage();
+      if (libraryStorage === 'local') {
+        // Only check for duplicates in local storage mode
+        // Import dynamically to avoid client-side errors
+        const { checkForDuplicateSearch } = await import('@/lib/storage/localStorage');
+        const existingChatId = checkForDuplicateSearch(body.query);
+        
+        if (existingChatId) {
+          // Found existing chat with same query, return redirect information
+          return Response.json({
+            type: 'redirect',
+            chatId: existingChatId,
+            message: 'find the same search history',
+          }, { status: 200 });
+        }
+      }
+    } catch (error) {
+      // If duplicate check fails, just continue with normal search
+      console.warn('Duplicate search check failed, continuing with normal search:', error);
+    }
 
     const history: BaseMessage[] = body.history.map((msg) => {
       return msg[0] === 'human'

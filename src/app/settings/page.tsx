@@ -213,7 +213,7 @@ const Page = () => {
         localStorage.getItem('autoVideoSearch') === 'true',
       );
 
-      setSystemInstructions(localStorage.getItem('systemInstructions')!);
+      setSystemInstructions(localStorage.getItem('systemInstructions') || '');
 
       setIsLoading(false);
     };

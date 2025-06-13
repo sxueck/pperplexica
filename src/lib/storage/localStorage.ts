@@ -155,4 +155,97 @@ export const clearLocalStorage = (): void => {
   } catch (error) {
     console.error('Error clearing localStorage:', error);
   }
+};
+
+/**
+ * Find a chat with messages that exactly match the given content
+ * Used for reusing existing search results when user asks the same question
+ */
+export const findLocalChatByContent = (content: string): {chat: LocalChat, messages: LocalMessage[]} | null => {
+  try {
+    const chats = getLocalChats();
+    const allMessages = getLocalMessages();
+    
+    // Normalize content for comparison (trim whitespace and convert to lowercase)
+    const normalizedContent = content.trim().toLowerCase();
+    
+    for (const chat of chats) {
+      const chatMessages = allMessages.filter(msg => msg.chatId === chat.id);
+      
+      // Look for user messages that exactly match the search content
+      const matchingUserMessage = chatMessages.find(msg => 
+        msg.role === 'user' && 
+        msg.content.trim().toLowerCase() === normalizedContent
+      );
+      
+      if (matchingUserMessage) {
+        return { chat, messages: chatMessages };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error finding chat by content:', error);
+    return null;
+  }
+};
+
+/**
+ * Search chats by keyword in title and message content
+ * Returns matching chats with their messages
+ */
+export const searchLocalChats = (keyword: string): {chat: LocalChat, messages: LocalMessage[]}[] => {
+  try {
+    if (!keyword.trim()) {
+      // If no keyword, return all chats with their messages
+      const chats = getLocalChats();
+      const allMessages = getLocalMessages();
+      return chats.map(chat => ({
+        chat,
+        messages: allMessages.filter(msg => msg.chatId === chat.id)
+      }));
+    }
+    
+    const chats = getLocalChats();
+    const allMessages = getLocalMessages();
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    const results: {chat: LocalChat, messages: LocalMessage[]}[] = [];
+    
+    for (const chat of chats) {
+      const chatMessages = allMessages.filter(msg => msg.chatId === chat.id);
+      
+      // Check if keyword matches chat title
+      const titleMatches = chat.title.toLowerCase().includes(normalizedKeyword);
+      
+      // Check if keyword matches any message content
+      const messageMatches = chatMessages.some(msg => 
+        msg.content.toLowerCase().includes(normalizedKeyword)
+      );
+      
+      if (titleMatches || messageMatches) {
+        results.push({ chat, messages: chatMessages });
+      }
+    }
+    
+    return results;
+  } catch (error) {
+    console.error('Error searching local chats:', error);
+    return [];
+  }
+};
+
+/**
+ * Check if user search content matches existing history to reuse results
+ * This function is used before making a new search request to avoid duplicated work
+ * @param userQuery - The user's search query/question
+ * @returns The chat ID if exact match found, null otherwise
+ */
+export const checkForDuplicateSearch = (userQuery: string): string | null => {
+  try {
+    const result = findLocalChatByContent(userQuery);
+    return result ? result.chat.id : null;
+  } catch (error) {
+    console.error('Error checking for duplicate search:', error);
+    return null;
+  }
 }; 

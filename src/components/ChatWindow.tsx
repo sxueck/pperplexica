@@ -377,6 +377,30 @@ const ChatWindow = ({ id }: { id?: string }) => {
       return;
     }
 
+    // Check for duplicate search in local storage before processing
+    try {
+      const configRes = await fetch('/api/config');
+      const config = await configRes.json();
+      
+      if (config.libraryStorage === 'local') {
+        // Only check for duplicates in local storage mode
+        const { checkForDuplicateSearch } = await import('@/lib/storage/localStorage');
+        const existingChatId = checkForDuplicateSearch(message);
+        
+        if (existingChatId && existingChatId !== chatId) {  
+          // Redirect to existing chat after a brief delay
+          setTimeout(() => {
+            window.location.href = `/c/${existingChatId}`;
+          }, 300);
+          
+          return;
+        }
+      }
+    } catch (error) {
+      // If duplicate check fails, just continue with normal search
+      console.warn('Duplicate search check failed, continuing with normal search:', error);
+    }
+
     setLoading(true);
     setMessageAppeared(false);
 

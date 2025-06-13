@@ -2,7 +2,7 @@
 
 import DeleteChat from '@/components/DeleteChat';
 import { cn, formatTimeDifference } from '@/lib/utils';
-import { BookOpenText, ClockIcon, Delete, ScanEye } from 'lucide-react';
+import { BookOpenText, ClockIcon, Search, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -13,9 +13,21 @@ export interface Chat {
   focusMode: string;
 }
 
+interface ChatWithMessages {
+  chat: Chat;
+  messages: Array<{
+    id: string;
+    content: string;
+    role: 'user' | 'assistant';
+  }>;
+}
+
 const Page = () => {
-  const [chats, setChats] = useState<Chat[]>([]);
+  const [allChats, setAllChats] = useState<Chat[]>([]);
+  const [filteredChats, setFilteredChats] = useState<ChatWithMessages[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
   useEffect(() => {
     const fetchChats = async () => {
@@ -30,7 +42,7 @@ const Page = () => {
           // For local storage, get chats from localStorage
           const { getLocalChats } = await import('@/lib/storage/localStorage');
           const localChats = getLocalChats();
-          setChats(localChats);
+          setAllChats(localChats);
         } else {
           // For sqlite storage, use existing API
           const res = await fetch(`/api/chats`, {
@@ -41,11 +53,11 @@ const Page = () => {
           });
 
           const data = await res.json();
-          setChats(data.chats);
+          setAllChats(data.chats);
         }
       } catch (error) {
         console.error('Error fetching chats:', error);
-        setChats([]);
+        setAllChats([]);
       }
 
       setLoading(false);
@@ -53,6 +65,79 @@ const Page = () => {
 
     fetchChats();
   }, []);
+
+  useEffect(() => {
+    const performSearch = async () => {
+      if (!searchQuery.trim()) {
+        setFilteredChats([]);
+        setIsSearchMode(false);
+        return;
+      }
+
+      setIsSearchMode(true);
+
+      try {
+        // Check storage configuration
+        const configRes = await fetch('/api/config');
+        const config = await configRes.json();
+        
+        if (config.libraryStorage === 'local') {
+          // For local storage, use search function
+          const { searchLocalChats } = await import('@/lib/storage/localStorage');
+          const searchResults = searchLocalChats(searchQuery);
+          setFilteredChats(searchResults.map(result => ({
+            chat: result.chat,
+            messages: result.messages.map(msg => ({
+              id: msg.id,
+              content: msg.content,
+              role: msg.role
+            }))
+          })));
+        } else {
+          // For sqlite storage, implement search API call if needed
+          // For now, just filter the existing chats by title
+          const filtered = allChats
+            .filter(chat => 
+              chat.title.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            .map(chat => ({
+              chat,
+              messages: []
+            }));
+          setFilteredChats(filtered);
+        }
+      } catch (error) {
+        console.error('Error searching chats:', error);
+        setFilteredChats([]);
+      }
+    };
+
+    const timeoutId = setTimeout(performSearch, 300); // Debounce search
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, allChats]);
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setFilteredChats([]);
+    setIsSearchMode(false);
+  };
+
+  const displayChats = isSearchMode ? filteredChats : allChats.map(chat => ({ chat, messages: [] }));
+
+  const getSearchHighlight = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    
+    return parts.map((part, index) => 
+      regex.test(part) ? (
+        <span key={index} className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">
+          {part}
+        </span>
+      ) : part
+    );
+  };
 
   return loading ? (
     <div className="flex flex-row items-center justify-center min-h-screen">
@@ -80,48 +165,106 @@ const Page = () => {
           <BookOpenText />
           <h1 className="text-3xl font-medium p-2">Library</h1>
         </div>
+        
+        {/* Search Box */}
+        <div className="relative mx-2 mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="搜索历史记录标题或内容..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                         bg-white dark:bg-gray-800 text-black dark:text-white
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                         placeholder-gray-500 dark:placeholder-gray-400"
+            />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {isSearchMode && (
+            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              找到 {filteredChats.length} 条相关记录
+            </div>
+          )}
+        </div>
+        
         <hr className="border-t border-[#2B2C2C] my-4 w-full" />
       </div>
-      {chats.length === 0 && (
+      
+      {displayChats.length === 0 && !loading && (
         <div className="flex flex-row items-center justify-center min-h-screen">
           <p className="text-black/70 dark:text-white/70 text-sm">
-            No chats found.
+            {isSearchMode ? '没有找到匹配的记录' : '没有找到聊天记录'}
           </p>
         </div>
       )}
-      {chats.length > 0 && (
+      
+      {displayChats.length > 0 && (
         <div className="flex flex-col pb-20 lg:pb-2">
-          {chats.map((chat, i) => (
-            <div
-              className={cn(
-                'flex flex-col space-y-4 py-6',
-                i !== chats.length - 1
-                  ? 'border-b border-white-200 dark:border-dark-200'
-                  : '',
-              )}
-              key={i}
-            >
-              <Link
-                href={`/c/${chat.id}`}
-                className="text-black dark:text-white lg:text-xl font-medium truncate transition duration-200 hover:text-[#24A0ED] dark:hover:text-[#24A0ED] cursor-pointer"
+          {displayChats.map((item, i) => {
+            const { chat } = item;
+            const matchingMessages = isSearchMode ? 
+              item.messages.filter(msg => 
+                msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+              ).slice(0, 2) : []; // Show max 2 matching messages
+              
+            return (
+              <div
+                className={cn(
+                  'flex flex-col space-y-4 py-6',
+                  i !== displayChats.length - 1
+                    ? 'border-b border-white-200 dark:border-dark-200'
+                    : '',
+                )}
+                key={i}
               >
-                {chat.title}
-              </Link>
-              <div className="flex flex-row items-center justify-between w-full">
-                <div className="flex flex-row items-center space-x-1 lg:space-x-1.5 text-black/70 dark:text-white/70">
-                  <ClockIcon size={15} />
-                  <p className="text-xs">
-                    {formatTimeDifference(new Date(), chat.createdAt)} Ago
-                  </p>
+                <Link
+                  href={`/c/${chat.id}`}
+                  className="text-black dark:text-white lg:text-xl font-medium truncate transition duration-200 hover:text-[#24A0ED] dark:hover:text-[#24A0ED] cursor-pointer"
+                >
+                  {isSearchMode ? getSearchHighlight(chat.title, searchQuery) : chat.title}
+                </Link>
+                
+                {/* Show matching message content when searching */}
+                {isSearchMode && matchingMessages.length > 0 && (
+                  <div className="ml-4 space-y-2">
+                    {matchingMessages.map((msg, msgIndex) => (
+                      <div key={msgIndex} className="text-sm text-gray-600 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                        <span className="font-medium text-xs uppercase tracking-wide text-gray-500 dark:text-gray-500">
+                          {msg.role === 'user' ? '问题' : '回答'}:
+                        </span>
+                        <div className="mt-1 line-clamp-2">
+                          {getSearchHighlight(msg.content, searchQuery)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="flex flex-row items-center justify-between w-full">
+                  <div className="flex flex-row items-center space-x-1 lg:space-x-1.5 text-black/70 dark:text-white/70">
+                    <ClockIcon size={15} />
+                    <p className="text-xs">
+                      {formatTimeDifference(new Date(), chat.createdAt)} Ago
+                    </p>
+                  </div>
+                  <DeleteChat
+                    chatId={chat.id}
+                    chats={allChats}
+                    setChats={setAllChats}
+                  />
                 </div>
-                <DeleteChat
-                  chatId={chat.id}
-                  chats={chats}
-                  setChats={setChats}
-                />
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
