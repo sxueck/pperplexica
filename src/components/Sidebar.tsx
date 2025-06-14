@@ -1,7 +1,7 @@
 'use client';
 
 import { cn, formatTimeDifference } from '@/lib/utils';
-import { BookOpenText, Home, Search, SquarePen, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { BookOpenText, Home, Search, SquarePen, Clock, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useSelectedLayoutSegments } from 'next/navigation';
 import React, { useState, useEffect, useRef, type ReactNode } from 'react';
@@ -81,6 +81,13 @@ const Sidebar = ({ children }: { children: React.ReactNode }) => {
       href: '/library',
       active: segments.includes('library'),
       label: t('sidebar.library'),
+      hasSubmenu: false,
+    },
+    {
+      icon: Users,
+      href: '/spaces',
+      active: segments.includes('spaces'),
+      label: t('sidebar.spaces'),
       hasSubmenu: false,
     },
   ];

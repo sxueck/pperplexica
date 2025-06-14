@@ -25,3 +25,18 @@ export const formatTimeDifference = (
   else
     return `${Math.floor(diffInSeconds / 31536000)} year${Math.floor(diffInSeconds / 31536000) !== 1 ? 's' : ''}`;
 };
+
+export const formatDetailedTime = (date: Date | string): string => {
+  const dateObj = new Date(date);
+  
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  };
+  
+  return dateObj.toLocaleString('zh-CN', options);
+};

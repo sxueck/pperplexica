@@ -16,6 +16,11 @@ import {
   youtubeSearchResponsePrompt,
   youtubeSearchRetrieverPrompt,
 } from './youtubeSearch';
+import {
+  generateGuardrailPrompt,
+  guardrailPromptTemplate,
+  guardrailSafetyGuidelines,
+} from './guardrail';
 
 export default {
   webSearchResponsePrompt,
@@ -29,4 +34,7 @@ export default {
   writingAssistantPrompt,
   youtubeSearchResponsePrompt,
   youtubeSearchRetrieverPrompt,
+  generateGuardrailPrompt,
+  guardrailPromptTemplate,
+  guardrailSafetyGuidelines,
 };

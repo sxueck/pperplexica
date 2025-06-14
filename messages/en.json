@@ -18,18 +18,20 @@
     "home": "Home",
     "discover": "Discover", 
     "library": "Library",
+    "spaces": "Spaces",
     "newChat": "New Chat",
     "chats": "Chats",
     "settings": "Settings"
   },
-  "search": {
+    "search": {
     "searching": "Searching...",
     "sources": "Sources",
-    "images": "Images", 
+    "images": "Images",
     "videos": "Videos",
     "speed": "Speed",
     "balanced": "Balanced",
-    "quality": "Quality"
+    "quality": "Quality",
+    "placeholder": "Search chat history titles or content..."
   },
   "focus": {
     "focus": "Focus",
@@ -101,6 +103,33 @@
   },
   "attach": {
     "files": "Attach files"
+  },
+  "spaces": {
+    "title": "Spaces",
+    "description": "Public spaces for sharing Q&A entries",
+    "noSpaces": "No spaces available",
+    "createSpace": "Create Space",
+    "shareFromLibrary": "Share from Library",
+    "publicSpace": "Public Space",
+    "sharedEntries": "Shared Entries",
+    "shareProperty": "Space Sharing",
+    "share": "Share",
+    "sharing": "Sharing...",
+    "shareToSpaces": "Share to Spaces",
+    "shareSuccess": "Successfully shared to spaces!",
+    "shareError": "Error occurred while sharing",
+    "shareFailed": "Share failed",
+    "shared": "Shared",
+    "sharedEntryReadOnly": "Read Only",
+    "cannotRewriteShared": "Cannot rewrite shared entries - they are read-only",
+    "shareWarning": "This will make your conversation publicly visible in Spaces",
+    "shareItemTitle": "Title",
+    "shareItemContent": "Content",
+    "confirmShare": "Confirm Share",
+    "shareConfirmTitle": "Share to Spaces",
+    "entryId": "Entry ID",
+    "category": "Category",
+    "subcategory": "Subcategory"
   },
   "loading": "Loading...",
   "error": "Error occurred"

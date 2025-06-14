@@ -11,6 +11,7 @@ import { useSearchParams } from 'next/navigation';
 import { getSuggestions } from '@/lib/actions';
 import NextError from 'next/error';
 import SettingsButton from './SettingsButton';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 export type Message = {
   messageId: string;
@@ -281,11 +282,13 @@ const loadMessages = async (
 };
 
 const ChatWindow = ({ id }: { id?: string }) => {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const initialMessage = searchParams.get('q');
 
   const [chatId, setChatId] = useState<string | undefined>(id);
   const [newChatCreated, setNewChatCreated] = useState(false);
+  const [isSharedEntry, setIsSharedEntry] = useState(false);
 
   const [chatModelProvider, setChatModelProvider] = useState<ChatModelProvider>(
     {
@@ -347,6 +350,9 @@ const ChatWindow = ({ id }: { id?: string }) => {
         setFiles,
         setFileIds,
       );
+      
+      // Check if this is a shared entry
+      checkIfSharedEntry(chatId);
     } else if (!chatId) {
       setNewChatCreated(true);
       setIsMessagesLoaded(true);
@@ -354,6 +360,21 @@ const ChatWindow = ({ id }: { id?: string }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Function to check if the current chat is a shared entry
+  const checkIfSharedEntry = async (chatId: string) => {
+    try {
+      const response = await fetch('/api/spaces');
+      if (response.ok) {
+        const data = await response.json();
+        const sharedEntry = data.entries?.find((entry: any) => entry.chatId === chatId);
+        setIsSharedEntry(!!sharedEntry);
+      }
+    } catch (error) {
+      console.error('Error checking if shared entry:', error);
+      setIsSharedEntry(false);
+    }
+  };
 
   const messagesRef = useRef<Message[]>([]);
 
@@ -642,6 +663,12 @@ const ChatWindow = ({ id }: { id?: string }) => {
   };
 
   const rewrite = async (messageId: string) => {
+    // Prevent rewrite for shared entries
+    if (isSharedEntry) {
+      toast.error(t('spaces.cannotRewriteShared'));
+      return;
+    }
+
     const index = messages.findIndex((msg) => msg.messageId === messageId);
 
     if (index === -1) return;
@@ -711,6 +738,7 @@ const ChatWindow = ({ id }: { id?: string }) => {
               setFileIds={setFileIds}
               files={files}
               setFiles={setFiles}
+              isSharedEntry={isSharedEntry}
             />
           </>
         ) : (

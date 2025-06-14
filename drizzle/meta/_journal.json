@@ -8,6 +8,20 @@
       "when": 1748405503809,
       "tag": "0000_fuzzy_randall",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1749906839437,
+      "tag": "0001_handy_vulcan",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1749927070352,
+      "tag": "0002_skinny_chimera",
+      "breakpoints": true
     }
   ]
 }

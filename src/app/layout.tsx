@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Montserrat } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
@@ -33,8 +33,11 @@ export const metadata: Metadata = {
       { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
     ],
   },
-  themeColor: '#3b82f6',
+};
+
+export const viewport: Viewport = {
   colorScheme: 'dark light',
+  themeColor: '#3b82f6',
 };
 
 export default function RootLayout({

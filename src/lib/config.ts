@@ -63,6 +63,12 @@ interface Config {
       API_KEY: string;
     };
   };
+  GUARDRAIL_MODEL?: {
+    ENABLED: boolean;
+    API_KEY: string;
+    API_URL: string;
+    MODEL_NAME: string;
+  };
 }
 
 type RecursivePartial<T> = {
@@ -180,4 +186,14 @@ export const updateConfig = (config: RecursivePartial<Config>) => {
       toml.stringify(mergedConfig),
     );
   }
+};
+
+export const getGuardrailConfig = () => {
+  const config = loadConfig();
+  return config.GUARDRAIL_MODEL || {
+    ENABLED: false,
+    API_KEY: '',
+    API_URL: '',
+    MODEL_NAME: ''
+  };
 };

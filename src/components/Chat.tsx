@@ -16,6 +16,7 @@ const Chat = ({
   setFileIds,
   files,
   setFiles,
+  isSharedEntry,
 }: {
   messages: Message[];
   sendMessage: (message: string) => void;
@@ -26,6 +27,7 @@ const Chat = ({
   setFileIds: (fileIds: string[]) => void;
   files: File[];
   setFiles: (files: File[]) => void;
+  isSharedEntry?: boolean;
 }) => {
   const [dividerWidth, setDividerWidth] = useState(0);
   const dividerRef = useRef<HTMLDivElement | null>(null);
@@ -78,6 +80,7 @@ const Chat = ({
               isLast={isLast}
               rewrite={rewrite}
               sendMessage={sendMessage}
+              isSharedEntry={isSharedEntry}
             />
             {!isLast && msg.role === 'assistant' && (
               <div className="h-px w-full bg-light-secondary dark:bg-dark-secondary" />
@@ -92,14 +95,16 @@ const Chat = ({
           className="bottom-24 lg:bottom-10 fixed z-40"
           style={{ width: dividerWidth }}
         >
-          <MessageInput
-            loading={loading}
-            sendMessage={sendMessage}
-            fileIds={fileIds}
-            setFileIds={setFileIds}
-            files={files}
-            setFiles={setFiles}
-          />
+          {!isSharedEntry && (
+            <MessageInput
+              loading={loading}
+              sendMessage={sendMessage}
+              fileIds={fileIds}
+              setFileIds={setFileIds}
+              files={files}
+              setFiles={setFiles}
+            />
+          )}
         </div>
       )}
     </div>

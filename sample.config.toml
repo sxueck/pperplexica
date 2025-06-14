@@ -151,3 +151,58 @@ API_KEY = ""           # Your BochaAI API key
 # QUALITY = ["SEARXNG", "TAVILY"]  # Add one paid service for quality mode only
 # [MODELS.GROQ]                 # Use Groq for faster, cheaper inference
 # API_KEY = "your-groq-key"
+
+# Content Guardrail Configuration
+# This section configures the content moderation and categorization system
+# When enabled, all content submissions to Spaces will be checked for safety and proper categorization
+[GUARDRAIL_MODEL]
+# Enable or disable the guardrail system
+# Set to true to enable content checking before allowing submissions to Spaces
+# Set to false to disable guardrail checks (content will be accepted without moderation)
+ENABLED = true
+
+# API key for the guardrail model endpoint
+# This should be a valid API key for your chosen AI service (OpenAI, Anthropic, etc.)
+# Example: "sk-..." for OpenAI, or your custom provider's API key format
+API_KEY = ""
+
+# Base URL for the guardrail model API
+# This should be an OpenAI-compatible API endpoint
+# Examples:
+# - "https://api.openai.com/v1" (OpenAI)
+# - "https://api.anthropic.com/v1" (Anthropic - if they support OpenAI format)
+# - "https://api.together.xyz/v1" (Together AI)
+# - "http://localhost:11434/v1" (Local Ollama with OpenAI compatibility)
+API_URL = ""
+
+# Model name to use for content moderation
+# This should be a model capable of understanding and analyzing content for safety
+# Examples:
+# - "gpt-3.5-turbo" or "gpt-4" (OpenAI)
+# - "meta-llama/Llama-2-70b-chat-hf" (Together AI)
+# - "llama2:7b" (Local Ollama)
+# Choose a model that balances accuracy with cost/speed for your use case
+MODEL_NAME = ""
+
+# How the Guardrail System Works:
+# 1. When a user tries to share content to Spaces, the system first sends the content to the guardrail model
+# 2. The model analyzes the content for:
+#    - Safety: Checks for harmful, inappropriate, or unsafe material
+#    - Category accuracy: Verifies if the content matches the specified category
+# 3. Based on the analysis, the system either:
+#    - Allows the submission (content is safe and properly categorized)
+#    - Rejects the submission (content violates safety guidelines)
+#    - Adjusts the category (content is safe but miscategorized)
+# 4. Users receive feedback about why content was rejected or if categories were adjusted
+
+# Security Considerations:
+# - The guardrail model has access to all content being shared
+# - Ensure your API keys are kept secure and have appropriate permissions
+# - Consider using a dedicated model/API key specifically for content moderation
+# - Monitor API usage to prevent unexpected costs from high-volume submissions
+
+# Performance Impact:
+# - Each submission requires an additional API call to the guardrail model
+# - This adds latency to the sharing process (typically 1-3 seconds)
+# - Consider the cost implications of running all submissions through a paid API
+# - For high-volume deployments, consider using local models or caching strategies

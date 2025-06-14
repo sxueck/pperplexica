@@ -20,6 +20,7 @@ import SearchImages from './SearchImages';
 import SearchVideos from './SearchVideos';
 import { useSpeech } from 'react-text-to-speech';
 import ThinkBox from './ThinkBox';
+import { useLanguage } from '@/lib/contexts/LanguageContext';
 
 const ThinkTagProcessor = ({ children }: { children: React.ReactNode }) => {
   return <ThinkBox content={children as string} />;
@@ -34,6 +35,7 @@ const MessageBox = ({
   isLast,
   rewrite,
   sendMessage,
+  isSharedEntry,
 }: {
   message: Message;
   messageIndex: number;
@@ -43,7 +45,9 @@ const MessageBox = ({
   isLast: boolean;
   rewrite: (messageId: string) => void;
   sendMessage: (message: string) => void;
+  isSharedEntry?: boolean;
 }) => {
+  const { t } = useLanguage();
   const [parsedMessage, setParsedMessage] = useState(message.content);
   const [speechMessage, setSpeechMessage] = useState(message.content);
 
@@ -160,6 +164,12 @@ const MessageBox = ({
                 <h3 className="text-black dark:text-white font-medium text-xl">
                   Answer
                 </h3>
+                {isSharedEntry && (
+                  <div className="flex items-center space-x-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-md text-xs">
+                    <BookCopy size={12} />
+                    <span>{t('spaces.sharedEntryReadOnly')}</span>
+                  </div>
+                )}
               </div>
 
               <Markdown
@@ -177,7 +187,9 @@ const MessageBox = ({
                     {/*  <button className="p-2 text-black/70 dark:text-white/70 rounded-xl hover:bg-light-secondary dark:hover:bg-dark-secondary transition duration-200 hover:text-black text-black dark:hover:text-white">
                       <Share size={18} />
                     </button> */}
-                    <Rewrite rewrite={rewrite} messageId={message.messageId} />
+                    {!isSharedEntry && (
+                      <Rewrite rewrite={rewrite} messageId={message.messageId} />
+                    )}
                   </div>
                   <div className="flex flex-row items-center space-x-1">
                     <Copy initialMessage={message.content} message={message} />

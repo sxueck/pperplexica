@@ -18,6 +18,7 @@
     "home": "首页",
     "discover": "发现",
     "library": "图书馆",
+    "spaces": "空间",
     "newChat": "新对话",
     "chats": "对话",
     "settings": "设置",
@@ -34,7 +35,8 @@
     "videos": "视频",
     "speed": "速度",
     "balanced": "平衡",
-    "quality": "质量"
+    "quality": "质量",
+    "placeholder": "搜索历史记录标题或内容..."
   },
   "focus": {
     "focus": "焦点",
@@ -106,6 +108,38 @@
   },
   "attach": {
     "files": "附加文件"
+  },
+  "spaces": {
+    "title": "空间",
+    "description": "用于分享问答条目的公共区域",
+    "noSpaces": "空间内暂无可用条目",
+    "createSpace": "创建空间",
+    "shareFromLibrary": "从图书馆分享",
+    "publicSpace": "公共空间",
+    "sharedEntries": "共享条目",
+    "shareProperty": "空间分享",
+    "share": "分享",
+    "sharing": "分享中...",
+    "shareToSpaces": "分享到空间",
+    "shareSuccess": "成功分享到空间！",
+    "shareError": "分享时发生错误",
+    "shareFailed": "分享失败",
+    "shared": "已分享",
+    "sharedEntryReadOnly": "只读",
+    "cannotRewriteShared": "无法重写共享条目 - 它们是只读的",
+    "shareWarning": "这会使您的对话让每个人都可见",
+    "shareItemTitle": "标题",
+    "shareItemContent": "内容",
+    "confirmShare": "确认分享",
+    "shareConfirmTitle": "分享到空间",
+    "entryId": "ID",
+    "category": "分类",
+    "subcategory": "子分类",
+    "viewEntries": "查看条目",
+    "entriesCount": "条目数量",
+    "backToSpaces": "返回空间",
+    "spaceEntries": "空间条目",
+    "selectCategory": "选择分类"
   },
   "loading": "加载中...",
   "error": "发生错误"

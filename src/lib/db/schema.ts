@@ -26,3 +26,15 @@ export const chats = sqliteTable('chats', {
     .$type<File[]>()
     .default(sql`'[]'`),
 });
+
+export const sharedEntries = sqliteTable('shared_entries', {
+  id: text('id').primaryKey(),
+  chatId: text('chatId').notNull(),
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  createdAt: text('createdAt').notNull(),
+  author: text('author').notNull(),
+  spaceSharing: integer('spaceSharing', { mode: 'boolean' }).notNull().default(true),
+  category: text('category'),
+  subcategory: text('subcategory'),
+});
