@@ -63,6 +63,15 @@ interface Config {
       API_KEY: string;
     };
   };
+  DOCUMENT_EXTRACTION?: {
+    METHOD: string;
+    CRAWL4AI?: {
+      API_URL: string;
+      API_KEY: string;
+      TIMEOUT: number;
+      SMART_EXTRACTION: boolean;
+    };
+  };
   GUARDRAIL_MODEL?: {
     ENABLED: boolean;
     API_KEY: string;
@@ -195,5 +204,34 @@ export const getGuardrailConfig = () => {
     API_KEY: '',
     API_URL: '',
     MODEL_NAME: ''
+  };
+};
+
+export const getDocumentExtractionMethod = () => {
+  // Config file takes precedence over environment variables
+  const config = loadConfig();
+  const configMethod = config.DOCUMENT_EXTRACTION?.METHOD;
+  
+  if (configMethod) return configMethod;
+  
+  // Fallback to environment variable only if config method is not set
+  const envMethod = process.env.USE_CRAWL4AI === 'true' ? 'crawl4ai' : 
+                   process.env.USE_CRAWL4AI === 'false' ? 'local' : null;
+  
+  return envMethod || 'local';
+};
+
+export const getCrawl4AIConfig = () => {
+  const config = loadConfig();
+  const crawl4aiConfig = config.DOCUMENT_EXTRACTION?.CRAWL4AI;
+  
+  // Use config file settings with environment variable fallbacks
+  return {
+    API_URL: crawl4aiConfig?.API_URL || process.env.CRAWL4AI_API_URL || '',
+    API_KEY: crawl4aiConfig?.API_KEY || process.env.CRAWL4AI_API_KEY || '',
+    TIMEOUT: crawl4aiConfig?.TIMEOUT || parseInt(process.env.CRAWL4AI_TIMEOUT || '30'),
+    SMART_EXTRACTION: crawl4aiConfig?.SMART_EXTRACTION !== undefined ? 
+      crawl4aiConfig.SMART_EXTRACTION : 
+      process.env.CRAWL4AI_SMART_EXTRACTION !== 'false'
   };
 };

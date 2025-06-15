@@ -105,7 +105,7 @@
     "files": "Attach files"
   },
   "spaces": {
-    "title": "Spaces",
+    "title": "Spaces (Experimental)",
     "description": "Public spaces for sharing Q&A entries",
     "noSpaces": "No spaces available",
     "createSpace": "Create Space",

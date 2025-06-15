@@ -110,7 +110,7 @@
     "files": "附加文件"
   },
   "spaces": {
-    "title": "空间",
+    "title": "空间 (实验性)",
     "description": "用于分享问答条目的公共区域",
     "noSpaces": "空间内暂无可用条目",
     "createSpace": "创建空间",

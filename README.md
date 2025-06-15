@@ -21,6 +21,7 @@
   - [Donations](#donations)
 - [Contribution](#contribution)
 - [Help and Support](#help-and-support)
+- [Document Extraction](#document-extraction)
 
 ## Overview
 
@@ -181,3 +182,82 @@ Perplexica is built on the idea that AI and large language models should be easy
 If you have any questions or feedback, please feel free to reach out to us. You can create an issue on GitHub or join our Discord server. There, you can connect with other users, share your experiences and reviews, and receive more personalized help. [Click here](https://discord.gg/EFwsmQDgAu) to join the Discord server. To discuss matters outside of regular support, feel free to contact me on Discord at `itzcrazykns`.
 
 Thank you for exploring Perplexica, the AI-powered search engine designed to enhance your search experience. We are constantly working to improve Perplexica and expand its capabilities. We value your feedback and contributions which help us make Perplexica even better. Don't forget to check back for updates and new features!
+
+## Document Extraction
+
+Perplexica supports two methods for extracting content from web URLs:
+
+### Local Extraction (Default)
+Uses built-in libraries (`html-to-text` and `axios`) for basic content extraction. This method:
+- Works out of the box with no additional setup
+- Supports PDF and HTML content
+- Has basic text cleaning capabilities
+- No external dependencies or API calls required
+
+### Crawl4AI Integration
+Uses the [Crawl4AI](https://github.com/unclecode/crawl4ai) service for advanced web content extraction. This method:
+- Provides AI-enhanced content parsing
+- Better handling of JavaScript-rendered content
+- Intelligent content extraction with noise removal
+- Supports markdown output format
+- Can extract structured data more effectively
+
+### Configuration
+
+#### Via Configuration File
+Add the following to your `config.toml`:
+
+```toml
+[DOCUMENT_EXTRACTION]
+# Choose extraction method: "local" or "crawl4ai"
+METHOD = "crawl4ai"
+
+[DOCUMENT_EXTRACTION.CRAWL4AI]
+# Crawl4AI service endpoint
+API_URL = "http://localhost:11235"
+# API key (if required)
+API_KEY = ""
+# Request timeout in seconds
+TIMEOUT = 30
+# Enable smart AI-enhanced extraction
+SMART_EXTRACTION = true
+```
+
+#### Via Environment Variables
+Environment variables take precedence over config file settings:
+
+```bash
+# Enable/disable Crawl4AI
+USE_CRAWL4AI=true
+
+# Crawl4AI configuration
+CRAWL4AI_API_URL=http://localhost:11235
+CRAWL4AI_API_KEY=your-api-key
+CRAWL4AI_TIMEOUT=30
+CRAWL4AI_SMART_EXTRACTION=true
+```
+
+### Setting Up Crawl4AI
+
+#### Local Installation
+```bash
+# Install Crawl4AI
+pip install crawl4ai
+
+# Start the service
+crawl4ai-server --port 11235
+```
+
+#### Docker Installation
+```bash
+# Pull and run Crawl4AI
+docker run -p 11235:11235 unclecode/crawl4ai:latest
+```
+
+For more details, visit the [Crawl4AI documentation](https://github.com/unclecode/crawl4ai).
+
+### Fallback Behavior
+When using Crawl4AI method:
+- If Crawl4AI fails, the system automatically falls back to local extraction
+- Error handling ensures content extraction continues even if the preferred method fails
+- All extraction attempts are logged for debugging

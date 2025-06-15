@@ -612,13 +612,11 @@ const ChatWindow = ({ id }: { id?: string }) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        content: message,
         message: {
           messageId: messageId,
           chatId: chatId!,
           content: message,
         },
-        chatId: chatId!,
         files: fileIds,
         focusMode: focusMode,
         optimizationMode: optimizationMode,
@@ -631,7 +629,7 @@ const ChatWindow = ({ id }: { id?: string }) => {
           name: embeddingModelProvider.name,
           provider: embeddingModelProvider.provider,
         },
-        systemInstructions: localStorage.getItem('systemInstructions'),
+        systemInstructions: localStorage.getItem('systemInstructions') || '',
       }),
     });
 

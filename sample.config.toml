@@ -31,11 +31,11 @@ SPEED = ["SEARXNG"]
 
 # Balanced mode: Good balance between speed and quality
 # Uses multiple sources for better coverage while maintaining reasonable response times
-BALANCED = ["SEARXNG", "TAVILY"]
+BALANCED = ["SEARXNG"]
 
 # Quality mode: Most comprehensive search, uses all available sources
 # Best for complex queries where thoroughness is more important than speed
-QUALITY = ["SEARXNG", "TAVILY", "BOCHAAI"]
+QUALITY = ["SEARXNG", "TAVILY"]
 
 # Available search engines:
 # - SEARXNG: Self-hosted meta search engine (free, requires setup)
@@ -151,6 +151,36 @@ API_KEY = ""           # Your BochaAI API key
 # QUALITY = ["SEARXNG", "TAVILY"]  # Add one paid service for quality mode only
 # [MODELS.GROQ]                 # Use Groq for faster, cheaper inference
 # API_KEY = "your-groq-key"
+
+# Document Extraction Configuration
+# Configure how web documents are extracted and processed
+[DOCUMENT_EXTRACTION]
+# Method for extracting content from web URLs
+# "local": Use built-in extraction with html-to-text and axios (default, no external dependencies)
+# "crawl4ai": Use Crawl4AI service for advanced extraction with better content parsing
+# Environment variable: USE_CRAWL4AI (true/false) overrides this setting
+METHOD = "local"
+
+# Crawl4AI service configuration (only used when METHOD = "crawl4ai")
+# Crawl4AI provides AI-friendly web crawling with better content extraction
+[DOCUMENT_EXTRACTION.CRAWL4AI]
+# API endpoint for Crawl4AI service
+# For local deployment: "http://localhost:11235"
+# For remote service: Use the provided Crawl4AI service URL
+API_URL = ""
+
+# API key for Crawl4AI service (if required by your deployment)
+# Leave empty for local installations without authentication
+API_KEY = ""
+
+# Maximum timeout for crawling requests (in seconds)
+# Increase for slow websites, decrease for faster responses
+TIMEOUT = 30
+
+# Whether to extract and clean content intelligently
+# true: Use AI-enhanced extraction (recommended)
+# false: Basic HTML extraction
+SMART_EXTRACTION = true
 
 # Content Guardrail Configuration
 # This section configures the content moderation and categorization system

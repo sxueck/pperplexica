@@ -15,7 +15,7 @@ import { BaseMessage } from '@langchain/core/messages';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import LineListOutputParser from '../outputParsers/listLineOutputParser';
 import LineOutputParser from '../outputParsers/lineOutputParser';
-import { getDocumentsFromLinks } from '../utils/documents';
+import { getDocumentsFromLinks, getDocumentsFromSearchResults } from '../utils/documents';
 import { Document } from 'langchain/document';
 import { searchSearxng } from './sources/searxng';
 import { searchTavily } from './sources/tavily';
@@ -27,7 +27,7 @@ import formatChatHistoryAsString from '../utils/formatHistory';
 import eventEmitter from 'events';
 import { StreamEvent } from '@langchain/core/tracers/log_stream';
 import { getOllamaRerankModel } from '../providers/ollama';
-import { getSearchModeConfig } from '../config';
+import { getSearchModeConfig, getDocumentExtractionMethod } from '../config';
 
 export interface MetaSearchAgentType {
   searchAndAnswer: (
@@ -286,22 +286,54 @@ class MetaSearchAgent implements MetaSearchAgentType {
       
       if (activeSources.includes('SEARXNG')) {
         const searxngResults = results[sourceIndex++];
-        const searxngDocs = searxngResults.results.map((result: any) =>
-          new Document({
-            pageContent:
-              result.content ||
-              (this.config.activeEngines.includes('youtube')
-                ? result.title
-                : ''),
-            metadata: {
-              title: result.title,
-              url: result.url,
-              source: 'searxng',
-              ...(result.img_src && { img_src: result.img_src }),
-            },
-          }),
-        );
-        allDocuments.push(...searxngDocs);
+        
+        // Check document extraction method
+        const extractionMethod = getDocumentExtractionMethod();
+        
+        if (extractionMethod === 'local') {
+          // For local method, directly use SearxNG content instead of re-fetching URLs
+          const searxngDocs = searxngResults.results.map((result: any) =>
+            new Document({
+              pageContent: result.content || result.title || '',
+              metadata: {
+                title: result.title,
+                url: result.url,
+                source: 'searxng',
+                extractionMethod: 'local',
+                ...(result.img_src && { img_src: result.img_src }),
+              },
+            }),
+          );
+          allDocuments.push(...searxngDocs);
+        } else {
+          // For crawl4ai method, extract URLs and use batch processing
+          const searchUrls = searxngResults.results
+            .map((result: any) => result.url)
+            .filter((url: string) => url && url.startsWith('http'))
+            .slice(0, optimizationMode === 'quality' ? 15 : optimizationMode === 'balanced' ? 10 : 8); // Limit URLs based on mode
+          
+          if (searchUrls.length > 0) {
+            try {
+              // Use Crawl4AI batch processing to get rich content
+              const extractedDocs = await getDocumentsFromSearchResults({ urls: searchUrls });
+              allDocuments.push(...extractedDocs);
+            } catch (error) {
+              // Silent fallback to original SearxNG content
+              const searxngDocs = searxngResults.results.map((result: any) =>
+                new Document({
+                  pageContent: result.content || result.title || '',
+                  metadata: {
+                    title: result.title,
+                    url: result.url,
+                    source: 'searxng_fallback',
+                    ...(result.img_src && { img_src: result.img_src }),
+                  },
+                }),
+              );
+              allDocuments.push(...searxngDocs);
+            }
+          }
+        }
       }
 
       if (activeSources.includes('TAVILY')) {
@@ -348,23 +380,51 @@ class MetaSearchAgent implements MetaSearchAgentType {
           engines: this.config.activeEngines,
         });
 
-        const fallbackDocs = fallbackResults.results.map((result) =>
-          new Document({
-            pageContent:
-              result.content ||
-              (this.config.activeEngines.includes('youtube')
-                ? result.title
-                : ''),
-            metadata: {
-              title: result.title,
-              url: result.url,
-              source: 'searxng',
-              ...(result.img_src && { img_src: result.img_src }),
-            },
-          }),
-        );
-
-        allDocuments.push(...fallbackDocs);
+        const extractionMethod = getDocumentExtractionMethod();
+        
+        if (extractionMethod === 'local') {
+          // For local method, directly use SearxNG content
+          const fallbackDocs = fallbackResults.results.map((result) =>
+            new Document({
+              pageContent: result.content || result.title || '',
+              metadata: {
+                title: result.title,
+                url: result.url,
+                source: 'searxng_fallback',
+                extractionMethod: 'local',
+                ...(result.img_src && { img_src: result.img_src }),
+              },
+            }),
+          );
+          allDocuments.push(...fallbackDocs);
+        } else {
+          // For crawl4ai method, extract URLs and use batch processing
+          const fallbackUrls = fallbackResults.results
+            .map((result: any) => result.url)
+            .filter((url: string) => url && url.startsWith('http'))
+            .slice(0, 8); // Limit to speed mode amount for fallback
+          
+          if (fallbackUrls.length > 0) {
+            try {
+              const extractedDocs = await getDocumentsFromSearchResults({ urls: fallbackUrls });
+              allDocuments.push(...extractedDocs);
+            } catch (extractionError) {
+              // Final fallback to original SearxNG content
+              const fallbackDocs = fallbackResults.results.map((result) =>
+                new Document({
+                  pageContent: result.content || result.title || '',
+                  metadata: {
+                    title: result.title,
+                    url: result.url,
+                    source: 'searxng_fallback',
+                    ...(result.img_src && { img_src: result.img_src }),
+                  },
+                }),
+              );
+              allDocuments.push(...fallbackDocs);
+            }
+          }
+        }
       } catch (fallbackError) {
         console.error('Fallback search also failed:', fallbackError);
       }

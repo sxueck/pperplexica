@@ -194,11 +194,50 @@ const handleHistorySave = async (
 };
 
 export const POST = async (req: Request) => {
+  let body: Body;
+  
   try {
-    const body = (await req.json()) as Body;
+    console.log('[API/CHAT] Parsing incoming request...');
+    body = (await req.json()) as Body;
+  } catch (parseError) {
+    console.error('[API/CHAT] Failed to parse JSON request body:', {
+      error: parseError instanceof Error ? parseError.message : String(parseError),
+      contentType: req.headers.get('content-type')
+    });
+    return Response.json(
+      { message: 'Invalid JSON request body' },
+      { status: 400 },
+    );
+  }
+
+  try {
     const { message } = body;
 
+    console.log('[API/CHAT] Incoming request body:', {
+      messageContent: message?.content?.substring(0, 100) + (message?.content?.length > 100 ? '...' : ''),
+      messageId: message?.messageId,
+      chatId: message?.chatId,
+      focusMode: body.focusMode,
+      optimizationMode: body.optimizationMode,
+      chatModel: body.chatModel,
+      embeddingModel: body.embeddingModel,
+      hasFiles: body.files?.length > 0,
+      filesCount: body.files?.length || 0,
+      historyLength: body.history?.length || 0
+    });
+
+    if (!message) {
+      console.error('[API/CHAT] Missing message object in request body');
+      return Response.json(
+        {
+          message: 'Missing message object',
+        },
+        { status: 400 },
+      );
+    }
+
     if (message.content === '') {
+      console.error('[API/CHAT] Empty message content provided');
       return Response.json(
         {
           message: 'Please provide a message to process',
@@ -212,13 +251,18 @@ export const POST = async (req: Request) => {
       getAvailableEmbeddingModelProviders(),
     ]);
 
+    console.log('[API/CHAT] Available providers:', {
+      chatModelProviders: Object.keys(chatModelProviders),
+      embeddingModelProviders: Object.keys(embeddingModelProviders)
+    });
+
     const chatModelProvider =
       chatModelProviders[
         body.chatModel?.provider || Object.keys(chatModelProviders)[0]
       ];
     const chatModel =
-      chatModelProvider[
-        body.chatModel?.name || Object.keys(chatModelProvider)[0]
+      chatModelProvider?.[
+        body.chatModel?.name || Object.keys(chatModelProvider || {})[0]
       ];
 
     const embeddingProvider =
@@ -226,9 +270,18 @@ export const POST = async (req: Request) => {
         body.embeddingModel?.provider || Object.keys(embeddingModelProviders)[0]
       ];
     const embeddingModel =
-      embeddingProvider[
-        body.embeddingModel?.name || Object.keys(embeddingProvider)[0]
+      embeddingProvider?.[
+        body.embeddingModel?.name || Object.keys(embeddingProvider || {})[0]
       ];
+
+    console.log('[API/CHAT] Selected models:', {
+      chatModelProvider: body.chatModel?.provider || Object.keys(chatModelProviders)[0],
+      chatModelName: body.chatModel?.name || Object.keys(chatModelProvider || {})[0],
+      embeddingProvider: body.embeddingModel?.provider || Object.keys(embeddingModelProviders)[0],
+      embeddingModelName: body.embeddingModel?.name || Object.keys(embeddingProvider || {})[0],
+      chatModelExists: !!chatModel,
+      embeddingModelExists: !!embeddingModel
+    });
 
     let llm: BaseChatModel | undefined;
     let embedding = embeddingModel.model;
@@ -247,10 +300,22 @@ export const POST = async (req: Request) => {
     }
 
     if (!llm) {
+      console.error('[API/CHAT] Failed to initialize chat model:', {
+        provider: body.chatModel?.provider,
+        name: body.chatModel?.name,
+        availableProviders: Object.keys(chatModelProviders),
+        selectedProvider: body.chatModel?.provider || Object.keys(chatModelProviders)[0]
+      });
       return Response.json({ error: 'Invalid chat model' }, { status: 400 });
     }
 
     if (!embedding) {
+      console.error('[API/CHAT] Failed to initialize embedding model:', {
+        provider: body.embeddingModel?.provider,
+        name: body.embeddingModel?.name,
+        availableProviders: Object.keys(embeddingModelProviders),
+        selectedProvider: body.embeddingModel?.provider || Object.keys(embeddingModelProviders)[0]
+      });
       return Response.json(
         { error: 'Invalid embedding model' },
         { status: 400 },
@@ -273,9 +338,18 @@ export const POST = async (req: Request) => {
       }
     });
 
+    console.log('[API/CHAT] Focus mode selection:', {
+      requestedFocusMode: body.focusMode,
+      availableFocusModes: Object.keys(searchHandlers)
+    });
+
     const handler = searchHandlers[body.focusMode];
 
     if (!handler) {
+      console.error('[API/CHAT] Invalid focus mode:', {
+        requested: body.focusMode,
+        available: Object.keys(searchHandlers)
+      });
       return Response.json(
         {
           message: 'Invalid focus mode',
@@ -284,6 +358,8 @@ export const POST = async (req: Request) => {
       );
     }
 
+    console.log('[API/CHAT] Starting search and answer process...');
+    
     const stream = await handler.searchAndAnswer(
       message.content,
       history,
@@ -294,12 +370,16 @@ export const POST = async (req: Request) => {
       body.systemInstructions,
     );
 
+    console.log('[API/CHAT] Search completed, setting up response stream...');
+
     const responseStream = new TransformStream();
     const writer = responseStream.writable.getWriter();
     const encoder = new TextEncoder();
 
     handleEmitterEvents(stream, writer, encoder, aiMessageId, message.chatId);
     handleHistorySave(message, humanMessageId, body.focusMode, body.files);
+
+    console.log('[API/CHAT] Response stream ready, sending to client');
 
     return new Response(responseStream.readable, {
       headers: {
@@ -309,7 +389,11 @@ export const POST = async (req: Request) => {
       },
     });
   } catch (err) {
-    console.error('An error occurred while processing chat request:', err);
+    console.error('[API/CHAT] Error occurred while processing chat request:', {
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      name: err instanceof Error ? err.name : undefined
+    });
     return Response.json(
       { message: 'An error occurred while processing chat request' },
       { status: 500 },
