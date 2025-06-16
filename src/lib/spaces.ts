@@ -25,16 +25,8 @@ export const getSpacesConfig = (): SpacesConfig => {
     return config;
   } catch (error) {
     console.error('Error reading spaces config:', error);
-    // Return default config if file doesn't exist
     return {
-      spaces: {
-        LLM: {
-          Description: "Large Language Model related discussions and content"
-        },
-        News: {
-          Description: "Latest news and current events"
-        }
-      }
+      spaces: {}
     };
   }
 };

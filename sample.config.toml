@@ -22,6 +22,18 @@ HIDE_SETTINGS = false
 # "local": Store chat history in browser only (lost when browser data is cleared)
 LIBRARY_STORAGE = "sqlite"
 
+# Force specific provider for chat models
+# If set, only this provider will be used for chat models, overriding user selections
+# Available options: "openai", "groq", "anthropic", "gemini", "deepseek", "ollama", "lmstudio", "custom_openai"
+# Leave empty or comment out to allow dynamic provider selection
+FORCED_CHAT_MODEL_PROVIDER = ""
+
+# Force specific provider for embedding models
+# If set, only this provider will be used for embedding models, overriding user selections
+# Available options: "openai", "gemini", "ollama", "transformers", "lmstudio"
+# Leave empty or comment out to allow dynamic provider selection
+FORCED_EMBEDDING_MODEL_PROVIDER = ""
+
 # Search mode configuration - Define which search engines to use for each optimization mode
 # This allows you to customize which sources are used based on your needs and available API keys
 [SEARCH_MODES]

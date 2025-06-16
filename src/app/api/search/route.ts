@@ -12,8 +12,11 @@ import {
   getCustomOpenaiApiUrl,
   getCustomOpenaiModelName,
   getLibraryStorage,
+  getForcedChatModelProvider,
+  getForcedEmbeddingModelProvider,
 } from '@/lib/config';
 import { searchHandlers } from '@/lib/search';
+import { selectProvider } from '@/lib/providers';
 
 interface chatModel {
   provider: string;
@@ -87,14 +90,24 @@ export const POST = async (req: Request) => {
       getAvailableEmbeddingModelProviders(),
     ]);
 
-    const chatModelProvider =
-      body.chatModel?.provider || Object.keys(chatModelProviders)[0];
+    // Use shared provider selection logic
+    const forcedChatProvider = getForcedChatModelProvider();
+    const forcedEmbeddingProvider = getForcedEmbeddingModelProvider();
+    
+    const chatModelProvider = selectProvider(
+      body.chatModel?.provider,
+      Object.keys(chatModelProviders),
+      forcedChatProvider
+    );
     const chatModel =
       body.chatModel?.name ||
       Object.keys(chatModelProviders[chatModelProvider])[0];
 
-    const embeddingModelProvider =
-      body.embeddingModel?.provider || Object.keys(embeddingModelProviders)[0];
+    const embeddingModelProvider = selectProvider(
+      body.embeddingModel?.provider,
+      Object.keys(embeddingModelProviders),
+      forcedEmbeddingProvider
+    );
     const embeddingModel =
       body.embeddingModel?.name ||
       Object.keys(embeddingModelProviders[embeddingModelProvider])[0];
@@ -102,7 +115,7 @@ export const POST = async (req: Request) => {
     let llm: BaseChatModel | undefined;
     let embeddings: Embeddings | undefined;
 
-    if (body.chatModel?.provider === 'custom_openai') {
+    if (chatModelProvider === 'custom_openai') {
       llm = new ChatOpenAI({
         modelName: body.chatModel?.name || getCustomOpenaiModelName(),
         openAIApiKey:

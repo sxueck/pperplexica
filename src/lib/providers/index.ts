@@ -10,6 +10,8 @@ import {
   getCustomOpenaiApiKey,
   getCustomOpenaiApiUrl,
   getCustomOpenaiModelName,
+  getForcedChatModelProvider,
+  getForcedEmbeddingModelProvider,
 } from '../config';
 import { ChatOpenAI } from '@langchain/openai';
 import {
@@ -41,7 +43,12 @@ import {
   PROVIDER_INFO as LMStudioInfo,
 } from './lmstudio';
 
-export const PROVIDER_METADATA = {
+export interface ProviderInfo {
+  key: string;
+  displayName: string;
+}
+
+export const PROVIDER_METADATA: Record<string, ProviderInfo> = {
   openai: OpenAIInfo,
   ollama: OllamaInfo,
   groq: GroqInfo,
@@ -54,6 +61,33 @@ export const PROVIDER_METADATA = {
     key: 'custom_openai',
     displayName: 'Custom OpenAI',
   },
+};
+
+/**
+ * Get the display name for a provider with safe fallback
+ */
+export const getProviderDisplayName = (provider: string): string => {
+  return PROVIDER_METADATA[provider]?.displayName || 
+    provider.charAt(0).toUpperCase() + provider.slice(1);
+};
+
+/**
+ * Select the appropriate provider based on forced configuration or fallback
+ */
+export const selectProvider = (
+  requestedProvider: string | undefined,
+  availableProviders: string[],
+  forcedProvider: string | null
+): string => {
+  if (forcedProvider && availableProviders.includes(forcedProvider)) {
+    return forcedProvider;
+  }
+  
+  if (requestedProvider && availableProviders.includes(requestedProvider)) {
+    return requestedProvider;
+  }
+  
+  return availableProviders[0] || '';
 };
 
 export interface ChatModel {

@@ -10,6 +10,7 @@ import {
   Transition,
 } from '@headlessui/react';
 import jsPDF from 'jspdf';
+import SearchProgress from './SearchProgress';
 
 const downloadFile = (filename: string, content: string, type: string) => {
   const blob = new Blob([content], { type });
@@ -121,9 +122,18 @@ const exportAsPDF = (messages: Message[], title: string) => {
 const Navbar = ({
   chatId,
   messages,
+  searchProgress,
+  focusMode,
 }: {
   messages: Message[];
   chatId: string;
+  searchProgress?: {
+    currentStep: string;
+    visible: boolean;
+    isCompleted?: boolean;
+    focusMode?: string;
+  };
+  focusMode?: string;
 }) => {
   const [title, setTitle] = useState<string>('');
   const [timeAgo, setTimeAgo] = useState<string>('');
@@ -159,54 +169,77 @@ const Navbar = ({
   }, []);
 
   return (
-    <div className="fixed z-40 top-0 left-0 right-0 px-4 lg:pl-[104px] lg:pr-6 lg:px-8 flex flex-row items-center justify-between w-full py-4 text-sm text-black dark:text-white/70 border-b bg-light-primary dark:bg-dark-primary border-light-100 dark:border-dark-200">
-      <a
-        href="/"
-        className="active:scale-95 transition duration-100 cursor-pointer lg:hidden"
-      >
-        <Edit size={17} />
-      </a>
-      <div className="hidden lg:flex flex-row items-center justify-center space-x-2">
-        <Clock size={17} />
-        <p className="text-xs">{timeAgo} ago</p>
-      </div>
-      <p className="hidden lg:flex">{title}</p>
-
-      <div className="flex flex-row items-center space-x-4">
-        <Popover className="relative">
-          <PopoverButton className="active:scale-95 transition duration-100 cursor-pointer p-2 rounded-full hover:bg-light-secondary dark:hover:bg-dark-secondary">
-            <Share size={17} />
-          </PopoverButton>
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-100"
-            enterFrom="opacity-0 translate-y-1"
-            enterTo="opacity-100 translate-y-0"
-            leave="transition ease-in duration-75"
-            leaveFrom="opacity-100 translate-y-0"
-            leaveTo="opacity-0 translate-y-1"
+    <div className="fixed z-40 top-0 left-0 right-0 bg-light-primary dark:bg-dark-primary border-b border-light-100 dark:border-dark-200">
+      <div className="px-4 lg:pl-[104px] lg:pr-6 lg:px-8 flex flex-row items-center justify-between w-full py-4 text-sm text-black dark:text-white/70">
+        <div className="flex items-center space-x-2 lg:hidden">
+          <a
+            href="/"
+            className="active:scale-95 transition duration-100 cursor-pointer"
           >
-            <PopoverPanel className="absolute right-0 mt-2 w-64 rounded-xl shadow-xl bg-light-primary dark:bg-dark-primary border border-light-200 dark:border-dark-200 z-50">
-              <div className="flex flex-col py-3 px-3 gap-2">
-                <button
-                  className="flex items-center gap-2 px-4 py-2 text-left hover:bg-light-secondary dark:hover:bg-dark-secondary transition-colors text-black dark:text-white rounded-lg font-medium"
-                  onClick={() => exportAsMarkdown(messages, title || '')}
-                >
-                  <FileText size={17} className="text-[#24A0ED]" />
-                  Export as Markdown
-                </button>
-                <button
-                  className="flex items-center gap-2 px-4 py-2 text-left hover:bg-light-secondary dark:hover:bg-dark-secondary transition-colors text-black dark:text-white rounded-lg font-medium"
-                  onClick={() => exportAsPDF(messages, title || '')}
-                >
-                  <FileDown size={17} className="text-[#24A0ED]" />
-                  Export as PDF
-                </button>
-              </div>
-            </PopoverPanel>
-          </Transition>
-        </Popover>
-        <DeleteChat redirect chatId={chatId} chats={[]} setChats={() => {}} />
+            <Edit size={17} />
+          </a>
+          {searchProgress?.visible && (
+            <SearchProgress
+              currentStep={searchProgress.currentStep}
+              visible={searchProgress.visible}
+              isCompleted={searchProgress.isCompleted}
+              focusMode={focusMode}
+            />
+          )}
+        </div>
+        <div className="hidden lg:flex flex-row items-center justify-center space-x-2">
+          <Clock size={17} />
+          <p className="text-xs">{timeAgo} ago</p>
+        </div>
+        <div className="hidden lg:flex items-center space-x-3">
+          {searchProgress?.visible ? (
+            <SearchProgress
+              currentStep={searchProgress.currentStep}
+              visible={searchProgress.visible}
+              isCompleted={searchProgress.isCompleted}
+              focusMode={focusMode}
+            />
+          ) : (
+            <p>{title}</p>
+          )}
+        </div>
+
+        <div className="flex flex-row items-center space-x-4">
+          <Popover className="relative">
+            <PopoverButton className="active:scale-95 transition duration-100 cursor-pointer p-2 rounded-full hover:bg-light-secondary dark:hover:bg-dark-secondary">
+              <Share size={17} />
+            </PopoverButton>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="opacity-0 translate-y-1"
+              enterTo="opacity-100 translate-y-0"
+              leave="transition ease-in duration-75"
+              leaveFrom="opacity-100 translate-y-0"
+              leaveTo="opacity-0 translate-y-1"
+            >
+              <PopoverPanel className="absolute right-0 mt-2 w-64 rounded-xl shadow-xl bg-light-primary dark:bg-dark-primary border border-light-200 dark:border-dark-200 z-50">
+                <div className="flex flex-col py-3 px-3 gap-2">
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 text-left hover:bg-light-secondary dark:hover:bg-dark-secondary transition-colors text-black dark:text-white rounded-lg font-medium"
+                    onClick={() => exportAsMarkdown(messages, title || '')}
+                  >
+                    <FileText size={17} className="text-[#24A0ED]" />
+                    Export as Markdown
+                  </button>
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 text-left hover:bg-light-secondary dark:hover:bg-dark-secondary transition-colors text-black dark:text-white rounded-lg font-medium"
+                    onClick={() => exportAsPDF(messages, title || '')}
+                  >
+                    <FileDown size={17} className="text-[#24A0ED]" />
+                    Export as PDF
+                  </button>
+                </div>
+              </PopoverPanel>
+            </Transition>
+          </Popover>
+          <DeleteChat redirect chatId={chatId} chats={[]} setChats={() => {}} />
+        </div>
       </div>
     </div>
   );

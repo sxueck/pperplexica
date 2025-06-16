@@ -7,7 +7,7 @@ import { Switch } from '@headlessui/react';
 import ThemeSwitcher from '@/components/theme/Switcher';
 import { ImagesIcon, VideoIcon } from 'lucide-react';
 import Link from 'next/link';
-import { PROVIDER_METADATA } from '@/lib/providers';
+import { PROVIDER_METADATA, getProviderDisplayName } from '@/lib/providers';
 import { useRouter } from 'next/navigation';
 import { useAppConfig } from '@/hooks/useAppConfig';
 
@@ -30,6 +30,8 @@ interface SettingsType {
   customOpenaiModelName: string;
   hideSettings: boolean;
   libraryStorage: string;
+  forcedChatModelProvider?: string;
+  forcedEmbeddingModelProvider?: string;
 }
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -570,35 +572,41 @@ const Page = () => {
                 <div className="flex flex-col space-y-4">
                   <div className="flex flex-col space-y-1">
                     <p className="text-black/70 dark:text-white/70 text-sm">
-                      Chat Model Provider
-                    </p>
-                    <Select
-                      value={selectedChatModelProvider ?? undefined}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setSelectedChatModelProvider(value);
-                        saveConfig('chatModelProvider', value);
-                        const firstModel =
-                          config.chatModelProviders[value]?.[0]?.name;
-                        if (firstModel) {
-                          setSelectedChatModel(firstModel);
-                          saveConfig('chatModel', firstModel);
-                        }
-                      }}
-                      options={Object.keys(config.chatModelProviders).map(
-                        (provider) => ({
-                          value: provider,
-                          label:
-                            (PROVIDER_METADATA as any)[provider]?.displayName ||
-                            provider.charAt(0).toUpperCase() +
-                              provider.slice(1),
-                        }),
+                      Chat Model Provider {config.forcedChatModelProvider && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400">(Forced by configuration)</span>
                       )}
-                    />
+                    </p>
+                    {config.forcedChatModelProvider ? (
+                      <div className="p-2 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                        {getProviderDisplayName(config.forcedChatModelProvider)}
+                      </div>
+                    ) : (
+                      <Select
+                        value={selectedChatModelProvider ?? undefined}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSelectedChatModelProvider(value);
+                          saveConfig('chatModelProvider', value);
+                          const firstModel =
+                            config.chatModelProviders[value]?.[0]?.name;
+                          if (firstModel) {
+                            setSelectedChatModel(firstModel);
+                            saveConfig('chatModel', firstModel);
+                          }
+                        }}
+                        options={Object.keys(config.chatModelProviders).map(
+                          (provider) => ({
+                            value: provider,
+                            label: getProviderDisplayName(provider),
+                          }),
+                        )}
+                      />
+                    )}
                   </div>
 
                   {selectedChatModelProvider &&
-                    selectedChatModelProvider != 'custom_openai' && (
+                    selectedChatModelProvider != 'custom_openai' &&
+                    !config.forcedChatModelProvider && (
                       <div className="flex flex-col space-y-1">
                         <p className="text-black/70 dark:text-white/70 text-sm">
                           Chat Model
@@ -643,8 +651,9 @@ const Page = () => {
                 </div>
               )}
 
-              {selectedChatModelProvider &&
-                selectedChatModelProvider === 'custom_openai' && (
+              {((selectedChatModelProvider &&
+                selectedChatModelProvider === 'custom_openai') ||
+                config.forcedChatModelProvider === 'custom_openai') && (
                   <div className="flex flex-col space-y-4">
                     <div className="flex flex-col space-y-1">
                       <p className="text-black/70 dark:text-white/70 text-sm">
@@ -713,34 +722,39 @@ const Page = () => {
                 <div className="flex flex-col space-y-4 mt-4 pt-4 border-t border-light-200 dark:border-dark-200">
                   <div className="flex flex-col space-y-1">
                     <p className="text-black/70 dark:text-white/70 text-sm">
-                      Embedding Model Provider
-                    </p>
-                    <Select
-                      value={selectedEmbeddingModelProvider ?? undefined}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setSelectedEmbeddingModelProvider(value);
-                        saveConfig('embeddingModelProvider', value);
-                        const firstModel =
-                          config.embeddingModelProviders[value]?.[0]?.name;
-                        if (firstModel) {
-                          setSelectedEmbeddingModel(firstModel);
-                          saveConfig('embeddingModel', firstModel);
-                        }
-                      }}
-                      options={Object.keys(config.embeddingModelProviders).map(
-                        (provider) => ({
-                          value: provider,
-                          label:
-                            (PROVIDER_METADATA as any)[provider]?.displayName ||
-                            provider.charAt(0).toUpperCase() +
-                              provider.slice(1),
-                        }),
+                      Embedding Model Provider {config.forcedEmbeddingModelProvider && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400">(Forced by configuration)</span>
                       )}
-                    />
+                    </p>
+                    {config.forcedEmbeddingModelProvider ? (
+                      <div className="p-2 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                        {getProviderDisplayName(config.forcedEmbeddingModelProvider)}
+                      </div>
+                    ) : (
+                      <Select
+                        value={selectedEmbeddingModelProvider ?? undefined}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSelectedEmbeddingModelProvider(value);
+                          saveConfig('embeddingModelProvider', value);
+                          const firstModel =
+                            config.embeddingModelProviders[value]?.[0]?.name;
+                          if (firstModel) {
+                            setSelectedEmbeddingModel(firstModel);
+                            saveConfig('embeddingModel', firstModel);
+                          }
+                        }}
+                        options={Object.keys(config.embeddingModelProviders).map(
+                          (provider) => ({
+                            value: provider,
+                            label: getProviderDisplayName(provider),
+                          }),
+                        )}
+                      />
+                    )}
                   </div>
 
-                  {selectedEmbeddingModelProvider && (
+                  {selectedEmbeddingModelProvider && !config.forcedEmbeddingModelProvider && (
                     <div className="flex flex-col space-y-1">
                       <p className="text-black/70 dark:text-white/70 text-sm">
                         Embedding Model

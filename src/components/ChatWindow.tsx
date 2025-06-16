@@ -62,17 +62,39 @@ const checkConfig = async (
       localStorage.setItem('autoVideoSearch', 'false');
     }
 
-    const providers = await fetch(`/api/models`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }).then(async (res) => {
-      if (!res.ok)
-        throw new Error(
-          `Failed to fetch models: ${res.status} ${res.statusText}`,
-        );
-      return res.json();
-    });
+    // Fetch both models and config to get forced provider settings
+    const [providers, config] = await Promise.all([
+      fetch(`/api/models`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }).then(async (res) => {
+        if (!res.ok)
+          throw new Error(
+            `Failed to fetch models: ${res.status} ${res.statusText}`,
+          );
+        return res.json();
+      }),
+      fetch(`/api/config`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }).then(async (res) => {
+        if (!res.ok)
+          throw new Error(
+            `Failed to fetch config: ${res.status} ${res.statusText}`,
+          );
+        return res.json();
+      })
+    ]);
+
+    // Override with forced providers if configured
+    if (config.forcedChatModelProvider) {
+      chatModelProvider = config.forcedChatModelProvider;
+    }
+    if (config.forcedEmbeddingModelProvider) {
+      embeddingModelProvider = config.forcedEmbeddingModelProvider;
+    }
 
     if (
       !chatModel ||
@@ -83,10 +105,15 @@ const checkConfig = async (
       if (!chatModel || !chatModelProvider) {
         const chatModelProviders = providers.chatModelProviders;
 
+        // Use forced provider if configured, otherwise fallback to localStorage or first available
         chatModelProvider =
-          chatModelProvider || Object.keys(chatModelProviders)[0];
+          config.forcedChatModelProvider || 
+          chatModelProvider || 
+          Object.keys(chatModelProviders)[0];
 
-        chatModel = Object.keys(chatModelProviders[chatModelProvider])[0];
+        if (chatModelProvider && chatModelProviders[chatModelProvider]) {
+          chatModel = Object.keys(chatModelProviders[chatModelProvider])[0];
+        }
 
         if (!chatModelProviders || Object.keys(chatModelProviders).length === 0)
           return toast.error('No chat models available');
@@ -101,16 +128,28 @@ const checkConfig = async (
         )
           return toast.error('No embedding models available');
 
-        embeddingModelProvider = Object.keys(embeddingModelProviders)[0];
-        embeddingModel = Object.keys(
-          embeddingModelProviders[embeddingModelProvider],
-        )[0];
+        // Use forced provider if configured, otherwise fallback to localStorage or first available
+        embeddingModelProvider = 
+          config.forcedEmbeddingModelProvider || 
+          embeddingModelProvider || 
+          Object.keys(embeddingModelProviders)[0];
+        
+        if (embeddingModelProvider && embeddingModelProviders[embeddingModelProvider]) {
+          embeddingModel = Object.keys(
+            embeddingModelProviders[embeddingModelProvider],
+          )[0];
+        }
       }
 
-      localStorage.setItem('chatModel', chatModel!);
-      localStorage.setItem('chatModelProvider', chatModelProvider);
-      localStorage.setItem('embeddingModel', embeddingModel!);
-      localStorage.setItem('embeddingModelProvider', embeddingModelProvider);
+      // Only save to localStorage if not forced by configuration
+      if (!config.forcedChatModelProvider && chatModel && chatModelProvider) {
+        localStorage.setItem('chatModel', chatModel);
+        localStorage.setItem('chatModelProvider', chatModelProvider);
+      }
+      if (!config.forcedEmbeddingModelProvider && embeddingModel && embeddingModelProvider) {
+        localStorage.setItem('embeddingModel', embeddingModel);
+        localStorage.setItem('embeddingModelProvider', embeddingModelProvider);
+      }
     } else {
       const chatModelProviders = providers.chatModelProviders;
       const embeddingModelProviders = providers.embeddingModelProviders;
@@ -161,15 +200,19 @@ const checkConfig = async (
       }
     }
 
-    setChatModelProvider({
-      name: chatModel!,
-      provider: chatModelProvider,
-    });
+    if (chatModel && chatModelProvider) {
+      setChatModelProvider({
+        name: chatModel,
+        provider: chatModelProvider,
+      });
+    }
 
-    setEmbeddingModelProvider({
-      name: embeddingModel!,
-      provider: embeddingModelProvider,
-    });
+    if (embeddingModel && embeddingModelProvider) {
+      setEmbeddingModelProvider({
+        name: embeddingModel,
+        provider: embeddingModelProvider,
+      });
+    }
 
     setIsConfigReady(true);
   } catch (err) {
@@ -319,6 +362,13 @@ const ChatWindow = ({ id }: { id?: string }) => {
 
   const [loading, setLoading] = useState(false);
   const [messageAppeared, setMessageAppeared] = useState(false);
+  
+  // Progress tracking states
+  const [searchProgress, setSearchProgress] = useState({
+    visible: false,
+    currentStep: 'searching',
+    isCompleted: false
+  });
 
   const [chatHistory, setChatHistory] = useState<[string, string][]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -424,6 +474,18 @@ const ChatWindow = ({ id }: { id?: string }) => {
 
     setLoading(true);
     setMessageAppeared(false);
+    
+    // Initialize search progress
+    setSearchProgress({
+      visible: true,
+      currentStep: 'searching',
+      isCompleted: false
+    });
+
+    // Clear interval when sources are received or component unmounts
+    const clearProgressInterval = () => {
+      // No longer needed since we removed the progress interval
+    };
 
     let sources: Document[] | undefined = undefined;
     let recievedMessage = '';
@@ -469,11 +531,37 @@ const ChatWindow = ({ id }: { id?: string }) => {
       if (data.type === 'error') {
         toast.error(data.data);
         setLoading(false);
+        setSearchProgress(prev => ({ ...prev, visible: false, isCompleted: false }));
         return;
       }
 
       if (data.type === 'sources') {
         sources = data.data;
+        clearProgressInterval();
+        setSearchProgress({
+          visible: true,
+          currentStep: 'extracting',
+          isCompleted: false
+        });
+        
+        // Simulate extracting progress
+        setTimeout(() => {
+          setSearchProgress({
+            visible: true,
+            currentStep: 'reranking',
+            isCompleted: false
+          });
+        }, 400);
+        
+        // Simulate reranking progress
+        setTimeout(() => {
+          setSearchProgress({
+            visible: true,
+            currentStep: 'processing',
+            isCompleted: false
+          });
+        }, 800);
+        
         if (!added) {
           setMessages((prevMessages) => [
             ...prevMessages,
@@ -492,7 +580,13 @@ const ChatWindow = ({ id }: { id?: string }) => {
       }
 
       if (data.type === 'message') {
+        // Update progress to generating when first message chunk arrives
         if (!added) {
+          setSearchProgress({
+            visible: true,
+            currentStep: 'generating',
+            isCompleted: false
+          });
           setMessages((prevMessages) => [
             ...prevMessages,
             {
@@ -529,6 +623,11 @@ const ChatWindow = ({ id }: { id?: string }) => {
         ]);
 
         setLoading(false);
+        // Show completion status, then hide after delay
+        setSearchProgress(prev => ({ ...prev, isCompleted: true }));
+        setTimeout(() => {
+          setSearchProgress(prev => ({ ...prev, visible: false, isCompleted: false }));
+        }, 2000);
 
         // Save to local storage if using local storage
         try {
@@ -606,57 +705,65 @@ const ChatWindow = ({ id }: { id?: string }) => {
       }
     };
 
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: {
-          messageId: messageId,
-          chatId: chatId!,
-          content: message,
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        files: fileIds,
-        focusMode: focusMode,
-        optimizationMode: optimizationMode,
-        history: chatHistory,
-        chatModel: {
-          name: chatModelProvider.name,
-          provider: chatModelProvider.provider,
-        },
-        embeddingModel: {
-          name: embeddingModelProvider.name,
-          provider: embeddingModelProvider.provider,
-        },
-        systemInstructions: localStorage.getItem('systemInstructions') || '',
-      }),
-    });
+        body: JSON.stringify({
+          message: {
+            messageId: messageId,
+            chatId: chatId!,
+            content: message,
+          },
+          files: fileIds,
+          focusMode: focusMode,
+          optimizationMode: optimizationMode,
+          history: chatHistory,
+          chatModel: {
+            name: chatModelProvider.name,
+            provider: chatModelProvider.provider,
+          },
+          embeddingModel: {
+            name: embeddingModelProvider.name,
+            provider: embeddingModelProvider.provider,
+          },
+          systemInstructions: localStorage.getItem('systemInstructions') || '',
+        }),
+      });
 
-    if (!res.body) throw new Error('No response body');
+      if (!res.body) throw new Error('No response body');
 
-    const reader = res.body?.getReader();
-    const decoder = new TextDecoder('utf-8');
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder('utf-8');
 
-    let partialChunk = '';
+      let partialChunk = '';
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
 
-      partialChunk += decoder.decode(value, { stream: true });
+        partialChunk += decoder.decode(value, { stream: true });
 
-      try {
-        const messages = partialChunk.split('\n');
-        for (const msg of messages) {
-          if (!msg.trim()) continue;
-          const json = JSON.parse(msg);
-          messageHandler(json);
+        try {
+          const messages = partialChunk.split('\n');
+          for (const msg of messages) {
+            if (!msg.trim()) continue;
+            const json = JSON.parse(msg);
+            messageHandler(json);
+          }
+          partialChunk = '';
+        } catch (error) {
+          console.warn('Incomplete JSON, waiting for next chunk...');
         }
-        partialChunk = '';
-      } catch (error) {
-        console.warn('Incomplete JSON, waiting for next chunk...');
       }
+    } catch (error) {
+      console.error('Error during chat request:', error);
+      setLoading(false);
+      setSearchProgress(prev => ({ ...prev, visible: false, isCompleted: false }));
+      clearProgressInterval();
+      toast.error('Failed to send message. Please try again.');
     }
   };
 
@@ -672,6 +779,13 @@ const ChatWindow = ({ id }: { id?: string }) => {
     if (index === -1) return;
 
     const message = messages[index - 1];
+    
+    // Reset progress state
+    setSearchProgress({
+      visible: false,
+      currentStep: 'searching',
+      isCompleted: false
+    });
 
     // For local storage, delete messages after the target message
     try {
@@ -725,7 +839,12 @@ const ChatWindow = ({ id }: { id?: string }) => {
       <div>
         {messages.length > 0 ? (
           <>
-            <Navbar chatId={chatId!} messages={messages} />
+            <Navbar 
+              chatId={chatId!} 
+              messages={messages} 
+              searchProgress={searchProgress}
+              focusMode={focusMode}
+            />
             <Chat
               loading={loading}
               messages={messages}

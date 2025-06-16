@@ -131,6 +131,22 @@
     "category": "Category",
     "subcategory": "Subcategory"
   },
+  "progress": {
+    "searching": "Searching web sources...",
+    "extracting": "Extracting content from sources...",
+    "reranking": "Reranking and filtering results...",
+    "processing": "Processing and analyzing information...",
+    "generating": "Generating comprehensive response...",
+    "completed": "Content retrieval completed"
+  },
+  "focus": {
+    "all": "All",
+    "academic": "Academic",
+    "writing": "Writing Assistant",
+    "wolfram": "Wolfram Alpha",
+    "youtube": "YouTube",
+    "reddit": "Reddit"
+  },
   "loading": "Loading...",
   "error": "Error occurred"
 } 

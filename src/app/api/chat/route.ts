@@ -8,6 +8,7 @@ import {
   embeddingModelProviders,
   getAvailableChatModelProviders,
   getAvailableEmbeddingModelProviders,
+  selectProvider,
 } from '@/lib/providers';
 import db from '@/lib/db';
 import { chats, messages as messagesSchema } from '@/lib/db/schema';
@@ -20,6 +21,8 @@ import {
   getCustomOpenaiApiUrl,
   getCustomOpenaiModelName,
   getLibraryStorage,
+  getForcedChatModelProvider,
+  getForcedEmbeddingModelProvider,
 } from '@/lib/config';
 import { searchHandlers } from '@/lib/search';
 
@@ -256,37 +259,48 @@ export const POST = async (req: Request) => {
       embeddingModelProviders: Object.keys(embeddingModelProviders)
     });
 
-    const chatModelProvider =
-      chatModelProviders[
-        body.chatModel?.provider || Object.keys(chatModelProviders)[0]
-      ];
+    // Use shared provider selection logic
+    const forcedChatProvider = getForcedChatModelProvider();
+    const forcedEmbeddingProvider = getForcedEmbeddingModelProvider();
+    
+    const selectedChatProvider = selectProvider(
+      body.chatModel?.provider,
+      Object.keys(chatModelProviders),
+      forcedChatProvider
+    );
+    const selectedEmbeddingProvider = selectProvider(
+      body.embeddingModel?.provider,
+      Object.keys(embeddingModelProviders),
+      forcedEmbeddingProvider
+    );
+
+    const chatModelProvider = chatModelProviders[selectedChatProvider];
     const chatModel =
       chatModelProvider?.[
         body.chatModel?.name || Object.keys(chatModelProvider || {})[0]
       ];
 
-    const embeddingProvider =
-      embeddingModelProviders[
-        body.embeddingModel?.provider || Object.keys(embeddingModelProviders)[0]
-      ];
+    const embeddingProvider = embeddingModelProviders[selectedEmbeddingProvider];
     const embeddingModel =
       embeddingProvider?.[
         body.embeddingModel?.name || Object.keys(embeddingProvider || {})[0]
       ];
 
     console.log('[API/CHAT] Selected models:', {
-      chatModelProvider: body.chatModel?.provider || Object.keys(chatModelProviders)[0],
+      chatModelProvider: selectedChatProvider,
       chatModelName: body.chatModel?.name || Object.keys(chatModelProvider || {})[0],
-      embeddingProvider: body.embeddingModel?.provider || Object.keys(embeddingModelProviders)[0],
+      embeddingProvider: selectedEmbeddingProvider,
       embeddingModelName: body.embeddingModel?.name || Object.keys(embeddingProvider || {})[0],
       chatModelExists: !!chatModel,
-      embeddingModelExists: !!embeddingModel
+      embeddingModelExists: !!embeddingModel,
+      forcedChatProvider,
+      forcedEmbeddingProvider
     });
 
     let llm: BaseChatModel | undefined;
     let embedding = embeddingModel.model;
 
-    if (body.chatModel?.provider === 'custom_openai') {
+    if (selectedChatProvider === 'custom_openai') {
       llm = new ChatOpenAI({
         openAIApiKey: getCustomOpenaiApiKey(),
         modelName: getCustomOpenaiModelName(),
@@ -304,7 +318,8 @@ export const POST = async (req: Request) => {
         provider: body.chatModel?.provider,
         name: body.chatModel?.name,
         availableProviders: Object.keys(chatModelProviders),
-        selectedProvider: body.chatModel?.provider || Object.keys(chatModelProviders)[0]
+        selectedProvider: selectedChatProvider,
+        forcedProvider: forcedChatProvider
       });
       return Response.json({ error: 'Invalid chat model' }, { status: 400 });
     }
@@ -314,7 +329,8 @@ export const POST = async (req: Request) => {
         provider: body.embeddingModel?.provider,
         name: body.embeddingModel?.name,
         availableProviders: Object.keys(embeddingModelProviders),
-        selectedProvider: body.embeddingModel?.provider || Object.keys(embeddingModelProviders)[0]
+        selectedProvider: selectedEmbeddingProvider,
+        forcedProvider: forcedEmbeddingProvider
       });
       return Response.json(
         { error: 'Invalid embedding model' },

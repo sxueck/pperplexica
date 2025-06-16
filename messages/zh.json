@@ -141,6 +141,22 @@
     "spaceEntries": "空间条目",
     "selectCategory": "选择分类"
   },
+  "progress": {
+    "searching": "正在搜索网络资源...",
+    "extracting": "正在从源站提取内容...",
+    "reranking": "正在重排和筛选结果...",
+    "processing": "正在处理和分析信息...",
+    "generating": "正在生成详细回答...",
+    "completed": "内容检索完成"
+  },
+  "focus": {
+    "all": "全部",
+    "academic": "学术研究",
+    "writing": "写作助手",
+    "wolfram": "数学计算",
+    "youtube": "视频搜索",
+    "reddit": "社区讨论"
+  },
   "loading": "加载中...",
   "error": "发生错误"
 } 

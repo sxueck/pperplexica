@@ -12,6 +12,8 @@ import {
   getHideSettings,
   getLibraryStorage,
   updateConfig,
+  getForcedChatModelProvider,
+  getForcedEmbeddingModelProvider,
 } from '@/lib/config';
 import {
   getAvailableChatModelProviders,
@@ -64,6 +66,8 @@ export const GET = async (req: Request) => {
     config['customOpenaiModelName'] = getCustomOpenaiModelName();
     config['hideSettings'] = getHideSettings();
     config['libraryStorage'] = getLibraryStorage();
+    config['forcedChatModelProvider'] = getForcedChatModelProvider();
+    config['forcedEmbeddingModelProvider'] = getForcedEmbeddingModelProvider();
 
     return Response.json({ ...config }, { status: 200 });
   } catch (err) {

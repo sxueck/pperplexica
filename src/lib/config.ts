@@ -17,6 +17,8 @@ interface Config {
     KEEP_ALIVE: string;
     HIDE_SETTINGS: boolean;
     LIBRARY_STORAGE: string;
+    FORCED_CHAT_MODEL_PROVIDER?: string;
+    FORCED_EMBEDDING_MODEL_PROVIDER?: string;
   };
   SEARCH_MODES: {
     SPEED: string[];
@@ -104,6 +106,16 @@ export const getKeepAlive = () => loadConfig().GENERAL.KEEP_ALIVE;
 export const getHideSettings = () => loadConfig().GENERAL.HIDE_SETTINGS;
 
 export const getLibraryStorage = () => loadConfig().GENERAL.LIBRARY_STORAGE;
+
+export const getForcedChatModelProvider = () => {
+  const provider = loadConfig().GENERAL.FORCED_CHAT_MODEL_PROVIDER;
+  return provider && provider.trim() !== "" ? provider : null;
+};
+
+export const getForcedEmbeddingModelProvider = () => {
+  const provider = loadConfig().GENERAL.FORCED_EMBEDDING_MODEL_PROVIDER;
+  return provider && provider.trim() !== "" ? provider : null;
+};
 
 export const getOpenaiApiKey = () => loadConfig().MODELS.OPENAI.API_KEY;
 

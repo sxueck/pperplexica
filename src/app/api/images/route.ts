@@ -3,8 +3,9 @@ import {
   getCustomOpenaiApiKey,
   getCustomOpenaiApiUrl,
   getCustomOpenaiModelName,
+  getForcedChatModelProvider,
 } from '@/lib/config';
-import { getAvailableChatModelProviders } from '@/lib/providers';
+import { getAvailableChatModelProviders, selectProvider } from '@/lib/providers';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { ChatOpenAI } from '@langchain/openai';
@@ -36,10 +37,15 @@ export const POST = async (req: Request) => {
 
     const chatModelProviders = await getAvailableChatModelProviders();
 
-    const chatModelProvider =
-      chatModelProviders[
-        body.chatModel?.provider || Object.keys(chatModelProviders)[0]
-      ];
+    // Use shared provider selection logic
+    const forcedChatProvider = getForcedChatModelProvider();
+    const selectedChatProvider = selectProvider(
+      body.chatModel?.provider,
+      Object.keys(chatModelProviders),
+      forcedChatProvider
+    );
+
+    const chatModelProvider = chatModelProviders[selectedChatProvider];
     const chatModel =
       chatModelProvider[
         body.chatModel?.model || Object.keys(chatModelProvider)[0]
@@ -47,7 +53,7 @@ export const POST = async (req: Request) => {
 
     let llm: BaseChatModel | undefined;
 
-    if (body.chatModel?.provider === 'custom_openai') {
+    if (selectedChatProvider === 'custom_openai') {
       llm = new ChatOpenAI({
         openAIApiKey: getCustomOpenaiApiKey(),
         modelName: getCustomOpenaiModelName(),
