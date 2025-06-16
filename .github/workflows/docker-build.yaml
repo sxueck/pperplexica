@@ -7,12 +7,12 @@ on:
   release:
     types: [published]
 
-# 添加工作流程级别的权限设置，确保对私有仓库的完整访问
 permissions:
   contents: read
   packages: write
   actions: read
   id-token: write
+  repository-projects: read
 
 env:
   REGISTRY: ghcr.io
@@ -24,7 +24,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: read
       id-token: write
+      repository-projects: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,124 +43,58 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from release tag
-        if: github.event_name == 'release'
-        id: version
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
-      - name: Build and push AMD64 Docker image
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-        run: |
-          DOCKERFILE=app.dockerfile
-          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          docker buildx build --platform linux/amd64 \
-            --cache-from=type=registry,ref=${IMAGE_REPO}:amd64 \
-            --cache-to=type=inline \
-            --provenance false \
-            -f $DOCKERFILE \
-            -t ${IMAGE_REPO}:amd64 \
-            --push .
-
-      - name: Build and push AMD64 release Docker image
-        if: github.event_name == 'release'
-        run: |
-          DOCKERFILE=app.dockerfile
-          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          docker buildx build --platform linux/amd64 \
-            --cache-from=type=registry,ref=${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-amd64 \
-            --cache-to=type=inline \
-            --provenance false \
-            -f $DOCKERFILE \
-            -t ${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-amd64 \
-            --push .
-
-  build-arm64:
-    runs-on: ubuntu-24.04-arm
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          install: true
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Extract version from release tag
         if: github.event_name == 'release'
         id: version
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      - name: Build and push ARM64 Docker image
+      - name: Debug information
+        run: |
+          echo "Registry: ${{ env.REGISTRY }}"
+          echo "Image Name: ${{ env.IMAGE_NAME }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+
+      - name: Build and push Docker image for main
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-        run: |
-          DOCKERFILE=app.dockerfile
-          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          docker buildx build --platform linux/arm64 \
-            --cache-from=type=registry,ref=${IMAGE_REPO}:arm64 \
-            --cache-to=type=inline \
-            --provenance false \
-            -f $DOCKERFILE \
-            -t ${IMAGE_REPO}:arm64 \
-            --push .
-
-      - name: Build and push ARM64 release Docker image
-        if: github.event_name == 'release'
-        run: |
-          DOCKERFILE=app.dockerfile
-          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          docker buildx build --platform linux/arm64 \
-            --cache-from=type=registry,ref=${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-arm64 \
-            --cache-to=type=inline \
-            --provenance false \
-            -f $DOCKERFILE \
-            -t ${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-arm64 \
-            --push .
-
-  manifest:
-    needs: [build-amd64, build-arm64]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-    steps:
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/build-push-action@v5
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          context: .
+          file: app.dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
 
-      - name: Extract version from release tag
+      - name: Build and push Docker image for release
         if: github.event_name == 'release'
-        id: version
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
-      - name: Create and push multi-arch manifest for main
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-        run: |
-          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          docker manifest create ${IMAGE_REPO}:main \
-            --amend ${IMAGE_REPO}:amd64 \
-            --amend ${IMAGE_REPO}:arm64
-          docker manifest push ${IMAGE_REPO}:main
-
-      - name: Create and push multi-arch manifest for releases
-        if: github.event_name == 'release'
-        run: |
-          IMAGE_REPO=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          docker manifest create ${IMAGE_REPO}:${{ env.RELEASE_VERSION }} \
-            --amend ${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-amd64 \
-            --amend ${IMAGE_REPO}:${{ env.RELEASE_VERSION }}-arm64
-          docker manifest push ${IMAGE_REPO}:${{ env.RELEASE_VERSION }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: app.dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.RELEASE_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
