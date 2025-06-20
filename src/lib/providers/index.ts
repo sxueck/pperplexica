@@ -126,7 +126,44 @@ export const embeddingModelProviders: Record<
 
 export const getAvailableChatModelProviders = async () => {
   const models: Record<string, Record<string, ChatModel>> = {};
+  const forcedChatProvider = getForcedChatModelProvider();
 
+  // If forced provider is specified, only load that provider (and custom_openai if applicable)
+  if (forcedChatProvider && forcedChatProvider !== 'custom_openai' && chatModelProviders[forcedChatProvider]) {
+    const providerModels = await chatModelProviders[forcedChatProvider]();
+    if (Object.keys(providerModels).length > 0) {
+      models[forcedChatProvider] = providerModels;
+    }
+    return models;
+  }
+
+  // Handle custom_openai forced provider
+  if (forcedChatProvider === 'custom_openai') {
+    const customOpenAiApiKey = getCustomOpenaiApiKey();
+    const customOpenAiApiUrl = getCustomOpenaiApiUrl();
+    const customOpenAiModelName = getCustomOpenaiModelName();
+
+    models['custom_openai'] = {
+      ...(customOpenAiApiKey && customOpenAiApiUrl && customOpenAiModelName
+        ? {
+            [customOpenAiModelName]: {
+              displayName: customOpenAiModelName,
+              model: new ChatOpenAI({
+                openAIApiKey: customOpenAiApiKey,
+                modelName: customOpenAiModelName,
+                temperature: 0.7,
+                configuration: {
+                  baseURL: customOpenAiApiUrl,
+                },
+              }) as unknown as BaseChatModel,
+            },
+          }
+        : {}),
+    };
+    return models;
+  }
+
+  // Otherwise, load all available providers
   for (const provider in chatModelProviders) {
     const providerModels = await chatModelProviders[provider]();
     if (Object.keys(providerModels).length > 0) {
@@ -161,7 +198,18 @@ export const getAvailableChatModelProviders = async () => {
 
 export const getAvailableEmbeddingModelProviders = async () => {
   const models: Record<string, Record<string, EmbeddingModel>> = {};
+  const forcedEmbeddingProvider = getForcedEmbeddingModelProvider();
 
+  // If forced provider is specified, only load that provider
+  if (forcedEmbeddingProvider && embeddingModelProviders[forcedEmbeddingProvider]) {
+    const providerModels = await embeddingModelProviders[forcedEmbeddingProvider]();
+    if (Object.keys(providerModels).length > 0) {
+      models[forcedEmbeddingProvider] = providerModels;
+    }
+    return models;
+  }
+
+  // Otherwise, load all available providers
   for (const provider in embeddingModelProviders) {
     const providerModels = await embeddingModelProviders[provider]();
     if (Object.keys(providerModels).length > 0) {
