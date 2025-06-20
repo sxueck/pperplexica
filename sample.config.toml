@@ -90,6 +90,7 @@ MODEL_NAME = ""        # Model name (e.g., "meta-llama/Llama-2-70b-chat-hf")
 # Download and run models locally for privacy and cost savings
 API_URL = ""           # Ollama API URL (e.g., "http://localhost:11434" or "http://host.docker.internal:11434" for Docker)
 RERANK_MODEL = ""      # Reranking model for improving search results (e.g., "bge-reranker-base")
+EMBEDDING_MODEL = ""   # Embedding model for similarity search (e.g., "nomic-embed-text", "mxbai-embed-large")
 
 [MODELS.DEEPSEEK]
 # DeepSeek API key for DeepSeek models
@@ -131,12 +132,16 @@ API_KEY = ""           # Your BochaAI API key
 # QUALITY = ["SEARXNG"]
 # [MODELS.OLLAMA]
 # API_URL = "http://localhost:11434"
+# EMBEDDING_MODEL = "nomic-embed-text"    # Specific embedding model for similarity search
+# RERANK_MODEL = "bge-reranker-base"      # Specific reranking model for result reranking
 # [API_ENDPOINTS.SEARXNG]
 # SEARXNG = "http://localhost:8080"
 
 # Example 2: Hybrid setup (local models + external search)
 # [MODELS.OLLAMA]
 # API_URL = "http://localhost:11434"
+# EMBEDDING_MODEL = "mxbai-embed-large"    # Large embedding model for better quality
+# RERANK_MODEL = "bge-reranker-base"       # Reranking model for result optimization
 # [API_ENDPOINTS.TAVILY]
 # API_KEY = "your-tavily-key"
 # [SEARCH_MODES]

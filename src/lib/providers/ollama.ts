@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getKeepAlive, getOllamaApiEndpoint, getOllamaRerankModelName } from '../config';
+import { getKeepAlive, getOllamaApiEndpoint, getOllamaRerankModelName, getOllamaEmbeddingModelName } from '../config';
 import { ChatModel, EmbeddingModel } from '.';
 
 export const PROVIDER_INFO = {
@@ -90,8 +90,9 @@ export class OllamaModelManager {
     try {
       const res = await axios.get(`${endpoint}/api/tags`);
       const { models } = res.data;
+      const configuredEmbeddingModel = getOllamaEmbeddingModelName();
 
-      // Load chat models
+      // Load chat models for all available models
       models.forEach((model: any) => {
         this.chatModels[model.model] = {
           displayName: model.name,
@@ -102,15 +103,48 @@ export class OllamaModelManager {
             keepAlive: getKeepAlive(),
           }),
         };
-
-        this.embeddingModels[model.model] = {
-          displayName: model.name,
-          model: new OllamaEmbeddings({
-            baseUrl: endpoint,
-            model: model.model,
-          }),
-        };
       });
+
+      // Load embedding models based on configuration
+      if (configuredEmbeddingModel && configuredEmbeddingModel.trim() !== '') {
+        // If specific embedding model is configured, only create that one
+        const embeddingModelExists = models.some((model: any) => model.model === configuredEmbeddingModel);
+        if (embeddingModelExists) {
+          const modelInfo = models.find((model: any) => model.model === configuredEmbeddingModel);
+          this.embeddingModels[configuredEmbeddingModel] = {
+            displayName: modelInfo?.name || configuredEmbeddingModel,
+            model: new OllamaEmbeddings({
+              baseUrl: endpoint,
+              model: configuredEmbeddingModel,
+            }),
+          };
+        } else {
+          console.warn(`Configured embedding model '${configuredEmbeddingModel}' not found in Ollama. Attempting to pull...`);
+          const pulled = await this.pullModel(configuredEmbeddingModel);
+          if (pulled) {
+            this.embeddingModels[configuredEmbeddingModel] = {
+              displayName: configuredEmbeddingModel,
+              model: new OllamaEmbeddings({
+                baseUrl: endpoint,
+                model: configuredEmbeddingModel,
+              }),
+            };
+          } else {
+            console.error(`Failed to pull configured embedding model '${configuredEmbeddingModel}'`);
+          }
+        }
+      } else {
+        // If no specific embedding model is configured, create embedding models for all available models
+        models.forEach((model: any) => {
+          this.embeddingModels[model.model] = {
+            displayName: model.name,
+            model: new OllamaEmbeddings({
+              baseUrl: endpoint,
+              model: model.model,
+            }),
+          };
+        });
+      }
 
       this.modelsLoaded = true;
     } catch (err) {
